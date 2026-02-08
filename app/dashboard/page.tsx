@@ -1,109 +1,57 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { generateMockData, getKPIs } from '@/lib/mock-data'
-import type { Facility, Alert } from '@/lib/mock-data'
-import DashboardHeader from '@/components/dashboard/header'
-import KPICards from '@/components/dashboard/kpi-cards'
-import AlertFeed from '@/components/dashboard/alert-feed'
-import TimeSeriesChart from '@/components/dashboard/time-series-chart'
-import FacilityTable from '@/components/dashboard/facility-table'
-import MapView from '@/components/dashboard/map-view'
+import { AlertTable } from '@/components/dashboard/alert-table'
+import { MapView } from '@/components/dashboard/map-view'
+import { TimeSeriesChart } from '@/components/dashboard/time-series-chart'
+import { SystemStatus } from '@/components/dashboard/system-status'
+import { mockAlerts, mockFacilities } from '@/lib/mock-data'
 
 export default function DashboardPage() {
-  const [facilities, setFacilities] = useState<Facility[]>([])
-  const [alerts, setAlerts] = useState<Alert[]>([])
-  const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set())
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const { facilities, alerts } = generateMockData()
-    setFacilities(facilities)
-    setAlerts(alerts)
-    setLoading(false)
-  }, [])
-
-  // Simulate live timestamp updates
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLastUpdate(new Date())
-    }, 60000) // Update every minute
-    return () => clearInterval(timer)
-  }, [])
-
-  const toggleAlert = (alertId: string) => {
-    setExpandedAlerts((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(alertId)) {
-        newSet.delete(alertId)
-      } else {
-        newSet.add(alertId)
-      }
-      return newSet
-    })
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-foreground">Loading dashboard...</div>
-      </div>
-    )
-  }
-
-  const kpis = getKPIs(facilities, alerts)
-
   return (
-    <main className="min-h-screen bg-background">
-      <DashboardHeader lastUpdate={lastUpdate} />
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Header */}
+      <header className="border-b border-border bg-card/50 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-mono font-bold tracking-tight">PRODROME SURVEILLANCE</h1>
+            <p className="text-xs text-muted-foreground mt-1">Uganda Population Health Surveillance · LIS Telemetry</p>
+          </div>
+          <SystemStatus />
+        </div>
+      </header>
 
-      {/* KPI Cards */}
-      <div className="container mx-auto px-4 py-8">
-        <KPICards kpis={kpis} />
+      <div className="flex h-[calc(100vh-90px)]">
+        {/* Left Panel: Alerts (40%) */}
+        <div className="w-2/5 border-r border-border overflow-y-auto bg-background">
+          <div className="p-4 border-b border-border bg-card/30 sticky top-0">
+            <h2 className="text-xs font-mono font-semibold text-foreground uppercase tracking-wide">Active Alerts ({mockAlerts.length})</h2>
+            <p className="text-xs text-muted-foreground mt-1">Ordered by severity and recency</p>
+          </div>
+          <AlertTable alerts={mockAlerts} />
+        </div>
 
-        {/* Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-          {/* Left: Map (60%) */}
-          <div className="lg:col-span-2">
-            <div className="bg-card border border-border rounded-lg overflow-hidden h-full min-h-[500px]">
-              <MapView facilities={facilities} />
+        {/* Right Panel: Map + Chart (60%) */}
+        <div className="w-3/5 flex flex-col bg-background">
+          {/* Map Section */}
+          <div className="flex-1 border-b border-border flex flex-col min-h-0">
+            <div className="p-4 border-b border-border bg-card/30">
+              <h2 className="text-xs font-mono font-semibold text-foreground uppercase tracking-wide">Facility Status Map</h2>
+              <p className="text-xs text-muted-foreground mt-1">{mockFacilities.length} monitored facilities</p>
+            </div>
+            <div className="flex-1 min-h-0">
+              <MapView facilities={mockFacilities} />
             </div>
           </div>
 
-          {/* Right: Alert Feed (40%) */}
-          <div className="lg:col-span-1">
-            <div className="bg-card border border-border rounded-lg overflow-hidden h-full min-h-[500px]">
-              <AlertFeed alerts={alerts} expandedAlerts={expandedAlerts} onToggleAlert={toggleAlert} />
+          {/* Chart Section */}
+          <div className="h-56 border-t border-border flex flex-col">
+            <div className="p-4 border-b border-border bg-card/30">
+              <h2 className="text-xs font-mono font-semibold text-foreground uppercase tracking-wide">30-Day Risk Trend</h2>
             </div>
-          </div>
-        </div>
-
-        {/* Time Series Chart */}
-        <div className="mt-8">
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">30-Day Risk Trend</h2>
-            <TimeSeriesChart facilities={facilities} />
-          </div>
-        </div>
-
-        {/* Facility Table */}
-        <div className="mt-8">
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Facility Status</h2>
-            <FacilityTable facilities={facilities} />
+            <div className="flex-1 min-h-0 px-4 py-2">
+              <TimeSeriesChart />
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="border-t border-border mt-12 py-6">
-        <div className="container mx-auto px-4">
-          <p className="text-xs text-muted-foreground text-center">
-            This is a prototype with simulated data for demonstration purposes only. No real patient data is used.
-          </p>
-        </div>
-      </footer>
-    </main>
+    </div>
   )
 }

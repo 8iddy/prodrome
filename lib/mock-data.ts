@@ -55,20 +55,28 @@ const UGANDA_FACILITIES = [
   { name: 'Jinja Regional Hospital', district: 'Jinja', region: 'East', lat: 0.4308, lng: 33.1256 },
   { name: 'Mbale Regional Hospital', district: 'Mbale', region: 'East', lat: 1.0518, lng: 34.2054 },
   // More facilities to reach 47
-  ...Array.from({ length: 37 }, (_, i) => ({
-    name: `Health Center ${i + 1}`,
-    district: ['Kampala', 'Wakiso', 'Mukono', 'Buikwe'][Math.floor(Math.random() * 4)],
-    region: 'Central',
-    lat: 0.3 + Math.random() * 0.6,
-    lng: 32.0 + Math.random() * 0.8,
-  })),
+  ...Array.from({ length: 37 }, (_, i) => {
+    // Deterministic seeded value based on index
+    const seed = i + 10;
+    const seededRandom = (seed * 9301 + 49297) % 233280 / 233280;
+    const seededRandom2 = ((seed + 1) * 9301 + 49297) % 233280 / 233280;
+    const seededRandom3 = ((seed + 2) * 9301 + 49297) % 233280 / 233280;
+    
+    return {
+      name: `Health Center ${i + 1}`,
+      district: ['Kampala', 'Wakiso', 'Mukono', 'Buikwe'][Math.floor(seededRandom * 4)],
+      region: 'Central',
+      lat: 0.3 + seededRandom2 * 0.6,
+      lng: 32.0 + seededRandom3 * 0.8,
+    };
+  }),
 ];
 
 function getBaseline(facilitySize: number) {
   return {
     volume: 15 + facilitySize * 3,
     tat: 4 + facilitySize * 0.5,
-    positivity: 8 + Math.random() * 7,
+    positivity: 8 + facilitySize * 7,
   };
 }
 
@@ -95,7 +103,8 @@ export function generateMockData(): { facilities: Facility[]; alerts: Alert[] } 
   // Generate facilities
   for (let i = 0; i < UGANDA_FACILITIES.length; i++) {
     const facility = UGANDA_FACILITIES[i];
-    const facilitySize = Math.random();
+    // Deterministic facility size based on index
+    const facilitySize = (i * 7919 + 3) % 1000 / 1000;
     const baseline = getBaseline(facilitySize);
     const metrics: FacilityMetrics[] = [];
     let maxRisk = 0;
@@ -109,9 +118,14 @@ export function generateMockData(): { facilities: Facility[]; alerts: Alert[] } 
       // Day-of-week pattern
       const dayMultiplier = dayOfWeek === 0 || dayOfWeek === 6 ? 0.6 : dayOfWeek <= 3 ? 1.1 : 0.8;
 
-      let volume = baseline.volume * dayMultiplier * (0.85 + Math.random() * 0.3);
-      let tat = baseline.tat * (0.95 + Math.random() * 0.1);
-      let positivity = baseline.positivity * (0.9 + Math.random() * 0.2);
+      // Deterministic noise based on facility index and day
+      const noise1 = ((i * 1009 + day * 997) % 1000) / 1000;
+      const noise2 = ((i * 1013 + day * 991) % 1000) / 1000;
+      const noise3 = ((i * 1019 + day * 983) % 1000) / 1000;
+
+      let volume = baseline.volume * dayMultiplier * (0.85 + noise1 * 0.3);
+      let tat = baseline.tat * (0.95 + noise2 * 0.1);
+      let positivity = baseline.positivity * (0.9 + noise3 * 0.2);
 
       // Apply anomalies for specific facilities
       const anomaly = shouldGenerateAnomaly(dayOfMonth);

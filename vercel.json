@@ -1,0 +1,4 @@
+{
+  "buildCommand": "rm -rf .next node_modules && pnpm install && next build",
+  "outputDirectory": ".next"
+}
