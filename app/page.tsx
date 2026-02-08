@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { mockAlerts, mockFacilities, type Alert } from '@/lib/mock-data'
-import { Radio, Clock, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Radio, Clock, ChevronRight, AlertTriangle, Check, Search, Bell } from 'lucide-react'
+import { toast } from 'sonner'
 
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
 
 export default function OperationsCenter() {
   const [selectedAlert, setSelectedAlert] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -28,6 +30,28 @@ export default function OperationsCenter() {
 
   const criticalCount = sortedAlerts.filter(a => a.severity === 'critical').length
   const highCount = sortedAlerts.filter(a => a.severity === 'high').length
+
+  const handleAcknowledge = (alert: Alert) => {
+    setAcknowledgedAlerts(prev => new Set([...prev, alert.id]))
+    toast.success(`Alert acknowledged`, {
+      description: `${alert.facility} - ${alert.severity.toUpperCase()}`,
+      icon: <Check className="w-4 h-4" />,
+    })
+  }
+
+  const handleInvestigate = (alert: Alert) => {
+    toast.info(`Investigation started`, {
+      description: `Opening case file for ${alert.facility}`,
+      icon: <Search className="w-4 h-4" />,
+    })
+  }
+
+  const handleEscalate = (alert: Alert) => {
+    toast.warning(`Alert escalated`, {
+      description: `Notifying regional supervisor and MOH duty officer`,
+      icon: <Bell className="w-4 h-4" />,
+    })
+  }
 
   const getSeverityStyles = (severity: string) => {
     switch (severity) {
@@ -62,11 +86,11 @@ export default function OperationsCenter() {
   // Muted color palette - red ONLY for critical
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'alert': return '#b91c1c' // red-700 - only for facilities with critical alerts
-      case 'warning': return '#b45309' // amber-700
-      case 'caution': return '#a16207' // yellow-700
-      case 'normal': return '#475569' // slate-600 - muted, nearly invisible
-      default: return '#475569'
+      case 'alert': return '#dc2626' // red-600 for visibility
+      case 'warning': return '#d97706' // amber-600
+      case 'caution': return '#ca8a04' // yellow-600
+      case 'normal': return '#64748b' // slate-500 - visible but muted
+      default: return '#64748b'
     }
   }
 
@@ -120,7 +144,7 @@ export default function OperationsCenter() {
                 key={alert.id}
                 className={`border-l-[3px] border-b border-slate-800/50 ${getSeverityStyles(alert.severity)} ${
                   selectedAlert === alert.id ? 'bg-slate-800/30' : ''
-                }`}
+                } ${acknowledgedAlerts.has(alert.id) ? 'opacity-60' : ''}`}
               >
                 <button
                   onClick={() => setSelectedAlert(selectedAlert === alert.id ? null : alert.id)}
@@ -134,6 +158,9 @@ export default function OperationsCenter() {
                       </span>
                       <span className="text-xs text-slate-200 truncate">{alert.facility}</span>
                       <span className="text-[10px] text-slate-600">{alert.region}</span>
+                      {acknowledgedAlerts.has(alert.id) && (
+                        <Check className="w-3 h-3 text-emerald-500" />
+                      )}
                     </div>
                     <div className="flex items-center gap-1 text-[9px] text-slate-600 flex-shrink-0">
                       <Clock className="w-2.5 h-2.5" />
@@ -171,14 +198,28 @@ export default function OperationsCenter() {
                         {alert.recommendedAction}
                       </div>
                       <div className="flex gap-2">
-                        <button className="flex-1 px-2 py-1.5 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700/50">
-                          Acknowledge
+                        <button
+                          onClick={() => handleAcknowledge(alert)}
+                          disabled={acknowledgedAlerts.has(alert.id)}
+                          className={`flex-1 px-2 py-1.5 text-[10px] transition-colors border ${
+                            acknowledgedAlerts.has(alert.id)
+                              ? 'bg-emerald-900/30 border-emerald-800/50 text-emerald-400'
+                              : 'bg-slate-800 hover:bg-slate-700 border-slate-700/50 text-slate-300'
+                          }`}
+                        >
+                          {acknowledgedAlerts.has(alert.id) ? 'Acknowledged' : 'Acknowledge'}
                         </button>
-                        <button className="flex-1 px-2 py-1.5 text-[10px] bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 transition-colors border border-blue-800/30 flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleInvestigate(alert)}
+                          className="flex-1 px-2 py-1.5 text-[10px] bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 transition-colors border border-blue-800/30 flex items-center justify-center gap-1"
+                        >
                           Investigate <ChevronRight className="w-3 h-3" />
                         </button>
                         {alert.severity === 'critical' && (
-                          <button className="flex-1 px-2 py-1.5 text-[10px] bg-red-900/50 hover:bg-red-900/70 text-red-200 transition-colors border border-red-800/40">
+                          <button
+                            onClick={() => handleEscalate(alert)}
+                            className="flex-1 px-2 py-1.5 text-[10px] bg-red-900/50 hover:bg-red-900/70 text-red-200 transition-colors border border-red-800/40"
+                          >
                             Escalate
                           </button>
                         )}
@@ -200,46 +241,96 @@ export default function OperationsCenter() {
             </span>
             <div className="flex items-center gap-4 text-[9px]">
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-red-700"></span>
-                <span className="text-slate-600">Critical ({statusCounts.alert})</span>
+                <span className="w-2 h-2 rounded-full bg-red-600"></span>
+                <span className="text-slate-500">Critical ({statusCounts.alert})</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-amber-700"></span>
-                <span className="text-slate-600">Warning ({statusCounts.warning})</span>
+                <span className="w-2 h-2 rounded-full bg-amber-600"></span>
+                <span className="text-slate-500">Warning ({statusCounts.warning})</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-yellow-700/60"></span>
-                <span className="text-slate-600">Caution ({statusCounts.caution})</span>
+                <span className="w-2 h-2 rounded-full bg-yellow-600"></span>
+                <span className="text-slate-500">Caution ({statusCounts.caution})</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-slate-600"></span>
-                <span className="text-slate-600">Normal ({statusCounts.normal})</span>
+                <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                <span className="text-slate-500">Normal ({statusCounts.normal})</span>
               </span>
             </div>
           </div>
 
           {/* Map */}
-          <div className="flex-1 relative min-h-0">
+          <div className="flex-1 relative min-h-0 bg-[#0c1015]">
             <svg
               viewBox="0 0 100 100"
               className="w-full h-full"
               preserveAspectRatio="xMidYMid meet"
             >
-              {/* Subtle grid */}
-              {[25, 50, 75].map(v => (
+              {/* Background grid */}
+              {[20, 40, 60, 80].map(v => (
                 <g key={v}>
-                  <line x1={v} y1="0" x2={v} y2="100" stroke="#1e293b" strokeWidth="0.15" />
-                  <line x1="0" y1={v} x2="100" y2={v} stroke="#1e293b" strokeWidth="0.15" />
+                  <line x1={v} y1="0" x2={v} y2="100" stroke="#1e293b" strokeWidth="0.2" opacity="0.5" />
+                  <line x1="0" y1={v} x2="100" y2={v} stroke="#1e293b" strokeWidth="0.2" opacity="0.5" />
                 </g>
               ))}
 
-              {/* Uganda outline */}
+              {/* Uganda country outline - more accurate and visible */}
               <path
-                d="M 45 8 L 58 10 L 72 18 L 75 28 L 73 42 L 68 52 L 58 58 L 48 55 L 38 58 L 28 52 L 22 42 L 25 28 L 32 18 L 42 10 Z"
-                fill="#0f1318"
-                stroke="#334155"
-                strokeWidth="0.25"
+                d="M 42 5
+                   L 55 6 L 62 8 L 70 12 L 78 20 L 82 30
+                   L 80 40 L 76 50 L 70 58 L 62 65
+                   L 52 68 L 42 65 L 32 68 L 22 62
+                   L 18 52 L 16 42 L 18 32 L 22 22
+                   L 28 14 L 36 8 Z"
+                fill="#151c24"
+                stroke="#3b82f6"
+                strokeWidth="0.5"
+                opacity="0.9"
               />
+
+              {/* Lake Victoria (bottom) */}
+              <ellipse
+                cx="58"
+                cy="62"
+                rx="12"
+                ry="8"
+                fill="#1e3a5f"
+                stroke="#3b82f6"
+                strokeWidth="0.3"
+                opacity="0.6"
+              />
+
+              {/* Lake Albert (west) */}
+              <ellipse
+                cx="22"
+                cy="38"
+                rx="4"
+                ry="10"
+                fill="#1e3a5f"
+                stroke="#3b82f6"
+                strokeWidth="0.2"
+                opacity="0.5"
+              />
+
+              {/* Country label */}
+              <text
+                x="48"
+                y="38"
+                fill="#64748b"
+                fontSize="6"
+                fontFamily="monospace"
+                textAnchor="middle"
+                fontWeight="bold"
+                letterSpacing="0.5"
+              >
+                UGANDA
+              </text>
+
+              {/* Region labels */}
+              <text x="48" y="18" fill="#475569" fontSize="2.5" fontFamily="monospace" textAnchor="middle">NORTH</text>
+              <text x="70" y="35" fill="#475569" fontSize="2.5" fontFamily="monospace" textAnchor="middle">EAST</text>
+              <text x="28" y="50" fill="#475569" fontSize="2.5" fontFamily="monospace" textAnchor="middle">WEST</text>
+              <text x="48" y="55" fill="#475569" fontSize="2.5" fontFamily="monospace" textAnchor="middle">CENTRAL</text>
 
               {/* Facility markers - sorted so alerts render on top */}
               {[...mockFacilities]
@@ -256,17 +347,24 @@ export default function OperationsCenter() {
 
                   return (
                     <g key={facility.id}>
+                      {/* Pulse effect for alerts */}
                       {isAlert && (
-                        <circle cx={x} cy={y} r="2" fill="none" stroke={color} strokeWidth="0.3" opacity="0.5" />
+                        <>
+                          <circle cx={x} cy={y} r="3" fill="none" stroke={color} strokeWidth="0.3" opacity="0.3" />
+                          <circle cx={x} cy={y} r="2" fill="none" stroke={color} strokeWidth="0.4" opacity="0.5" />
+                        </>
                       )}
                       {isWarning && (
-                        <circle cx={x} cy={y} r="1.5" fill="none" stroke={color} strokeWidth="0.2" opacity="0.4" />
+                        <circle cx={x} cy={y} r="2" fill="none" stroke={color} strokeWidth="0.3" opacity="0.4" />
                       )}
+                      {/* Main marker */}
                       <circle
                         cx={x}
                         cy={y}
-                        r={isAlert ? "1" : isWarning ? "0.8" : "0.6"}
+                        r={isAlert ? "1.2" : isWarning ? "1" : "0.7"}
                         fill={color}
+                        stroke="#0c1015"
+                        strokeWidth="0.2"
                       />
                     </g>
                   )
