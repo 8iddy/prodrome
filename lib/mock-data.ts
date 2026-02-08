@@ -30,20 +30,15 @@ export interface Facility {
 export interface Alert {
   id: string;
   facilityId: string;
-  facilityName: string;
-  district: string;
-  priority: 'high' | 'medium' | 'low';
-  category: 'Respiratory illness likely' | 'Gastrointestinal illness suspected' | 'Vector-borne (malaria suspected)';
-  detectedTime: string;
-  signals: Array<{
-    name: string;
-    value: string;
-    baseline: string;
-    type: 'volume' | 'tat' | 'positivity' | 'backlog';
-  }>;
+  facility: string;
+  region: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  signal: string;
   confidence: number;
-  recommendation: string;
-  isExpanded?: boolean;
+  firstDetected: string;
+  affectedTests: number;
+  status: string;
+  recommendedAction: string;
 }
 
 const UGANDA_FACILITIES = [
@@ -192,59 +187,49 @@ export function generateMockData(): { facilities: Facility[]; alerts: Alert[] } 
   // Generate alerts based on facilities with high risk
   const alerts: Alert[] = [];
 
-  // Alert 1: Moroto High
+  // Alert 1: Moroto Critical
   alerts.push({
     id: 'alert-1',
     facilityId: 'facility-0',
-    facilityName: 'Moroto Regional Hospital',
-    district: 'Moroto',
-    priority: 'high',
-    category: 'Respiratory illness likely',
-    detectedTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-    signals: [
-      { name: 'Test volume', value: '340 tests', baseline: '19 avg', type: 'volume' },
-      { name: 'Turnaround time', value: '18.3 hrs', baseline: '6.2 hrs', type: 'tat' },
-      { name: 'Respiratory positivity', value: '42%', baseline: '12%', type: 'positivity' },
-      { name: 'Backlog', value: '34 pending', baseline: '0', type: 'backlog' },
-    ],
-    confidence: 87,
-    recommendation:
-      'Deploy surge testing capacity, notify district surveillance team, activate respiratory response protocol, verify with rapid field investigation.',
+    facility: 'Moroto Regional Hospital',
+    region: 'Karamoja',
+    severity: 'critical',
+    signal: 'Multivariate spike: volume +1700% | TAT +195% | respiratory positivity +250% | backlog 34 pending',
+    confidence: 0.87,
+    firstDetected: '02:15 UTC',
+    affectedTests: 340,
+    status: 'Active escalation',
+    recommendedAction: 'ACTIVATE surge capacity. Deploy epidemiologist on-site. Confirm with field investigation within 4h.',
   });
 
-  // Alert 2: Mulago Medium
+  // Alert 2: Mulago High
   alerts.push({
     id: 'alert-2',
     facilityId: 'facility-1',
-    facilityName: 'Mulago National Hospital',
-    district: 'Kampala',
-    priority: 'medium',
-    category: 'Gastrointestinal illness suspected',
-    detectedTime: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
-    signals: [
-      { name: 'GI panel orders', value: '215% above baseline', baseline: '', type: 'volume' },
-      { name: 'Turnaround time', value: '12.1 hrs', baseline: '4.5 hrs', type: 'tat' },
-      { name: 'Stool culture positivity', value: '28%', baseline: '8%', type: 'positivity' },
-    ],
-    confidence: 73,
-    recommendation: 'Increase lab staffing for 48 hours, verify signal with facility triage logs, monitor adjacent facilities.',
+    facility: 'Mulago National Hospital',
+    region: 'Central',
+    severity: 'high',
+    signal: 'Gastrointestinal panel anomaly: volume +215% | stool culture positivity 28% (baseline 8%)',
+    confidence: 0.73,
+    firstDetected: '05:42 UTC',
+    affectedTests: 215,
+    status: 'Pending verification',
+    recommendedAction: 'Notify epidemiology unit. Increase lab staffing 48hrs. Cross-reference with triage logs.',
   });
 
-  // Alert 3: Mbarara Low
+  // Alert 3: Mbarara Medium
   alerts.push({
     id: 'alert-3',
     facilityId: 'facility-2',
-    facilityName: 'Mbarara Regional Hospital (Multi-facility cluster)',
-    district: 'Mbarara',
-    priority: 'low',
-    category: 'Vector-borne (malaria suspected)',
-    detectedTime: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(), // 8 hours ago
-    signals: [
-      { name: 'Malaria RDT volume', value: '180% above baseline', baseline: '', type: 'volume' },
-      { name: 'Positivity', value: '35%', baseline: '22% seasonal baseline', type: 'positivity' },
-    ],
-    confidence: 62,
-    recommendation: 'Routine monitoring; consider vector control assessment if trend persists.',
+    facility: 'Mbarara Regional Hospital',
+    region: 'Southwest',
+    severity: 'medium',
+    signal: 'Malaria RDT volume +180% | positivity 35% (seasonal baseline 22%)',
+    confidence: 0.62,
+    firstDetected: '08:33 UTC',
+    affectedTests: 145,
+    status: 'Routine monitoring',
+    recommendedAction: 'Monitor adjacent districts. Assess vector control readiness if trend persists.',
   });
 
   return { facilities, alerts };
@@ -253,9 +238,10 @@ export function generateMockData(): { facilities: Facility[]; alerts: Alert[] } 
 export function getKPIs(facilities: Facility[], alerts: Alert[]) {
   const activeAlerts = alerts.length;
   const severityBreakdown = {
-    high: alerts.filter((a) => a.priority === 'high').length,
-    medium: alerts.filter((a) => a.priority === 'medium').length,
-    low: alerts.filter((a) => a.priority === 'low').length,
+    critical: alerts.filter((a) => a.severity === 'critical').length,
+    high: alerts.filter((a) => a.severity === 'high').length,
+    medium: alerts.filter((a) => a.severity === 'medium').length,
+    low: alerts.filter((a) => a.severity === 'low').length,
   };
 
   const facilitiesByStatus = {
@@ -274,3 +260,7 @@ export function getKPIs(facilities: Facility[], alerts: Alert[]) {
     systemHealth: '94% operational',
   };
 }
+
+const { facilities: mockFacilities, alerts: mockAlerts } = generateMockData()
+
+export { mockFacilities, mockAlerts }

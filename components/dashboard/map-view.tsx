@@ -8,7 +8,7 @@ interface MapViewProps {
   facilities: Facility[]
 }
 
-export default function MapView({ facilities }: MapViewProps) {
+export function MapView({ facilities }: MapViewProps) {
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null)
 
   const getStatusColor = (status: string) => {
