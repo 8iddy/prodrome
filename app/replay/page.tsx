@@ -1,2 +1,2 @@
-import ProDromeConsole from '@/components/prodrome-console'
-export default function ReplayPage() { return <ProDromeConsole section="replay" /> }
+import { OperationsDashboard } from '@/components/dashboard/operations-dashboard'
+export default function ReplayPage() { return <OperationsDashboard section="replay" /> }

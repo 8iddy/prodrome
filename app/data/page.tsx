@@ -1,2 +1,2 @@
-import ProDromeConsole from '@/components/prodrome-console'
-export default function DataPage() { return <ProDromeConsole section="data" /> }
+import { OperationsDashboard } from '@/components/dashboard/operations-dashboard'
+export default function DataPage() { return <OperationsDashboard section="data" /> }

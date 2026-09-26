@@ -1,2 +1,2 @@
-import ProDromeConsole from '@/components/prodrome-console'
-export default function ResearchPage() { return <ProDromeConsole section="research" /> }
+import { OperationsDashboard } from '@/components/dashboard/operations-dashboard'
+export default function ResearchPage() { return <OperationsDashboard section="research" /> }

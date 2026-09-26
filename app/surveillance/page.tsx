@@ -1,2 +1,2 @@
-import ProDromeConsole from '@/components/prodrome-console'
-export default function SurveillancePage() { return <ProDromeConsole section="surveillance" /> }
+import { OperationsDashboard } from '@/components/dashboard/operations-dashboard'
+export default function SurveillancePage() { return <OperationsDashboard section="surveillance" /> }

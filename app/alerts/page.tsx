@@ -1,2 +1,2 @@
-import ProDromeConsole from '@/components/prodrome-console'
-export default function AlertsPage() { return <ProDromeConsole section="alerts" /> }
+import { OperationsDashboard } from '@/components/dashboard/operations-dashboard'
+export default function AlertsPage() { return <OperationsDashboard section="alerts" /> }

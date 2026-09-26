@@ -1,5 +1,2 @@
-import ProDromeConsole from '@/components/prodrome-console'
-
-export default function Page() {
-  return <ProDromeConsole />
-}
+import { OperationsDashboard } from '@/components/dashboard/operations-dashboard'
+export default function Page() { return <OperationsDashboard /> }
