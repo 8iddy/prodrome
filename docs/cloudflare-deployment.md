@@ -24,4 +24,4 @@ python3 -m analytics evaluate
 pnpm build
 ```
 
-`wrangler.toml` identifies the existing Pages project. `pnpm pages:deploy` is available for an explicitly authorised manual production deployment, but normal updates should use the GitHub Action. If an Actions deployment fails, inspect its log for the first failing build/secret step; do not expose tokens in issues or logs. Future large raw files/model artefacts can use R2 and run metadata D1, but neither is needed at prototype scale.
+`wrangler.toml` identifies the existing Pages project and its static `./out` build directory. `pnpm pages:deploy` is available for an explicitly authorised manual production deployment, but normal updates should use the GitHub Action. If an Actions deployment fails, inspect its log for the first failing build/secret step; do not expose tokens in issues or logs. Future large raw files/model artefacts can use R2 and run metadata D1, but neither is needed at prototype scale.
