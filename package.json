@@ -6,9 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
     "pages:build": "next build",
-    "pages:deploy": "npm run pages:build && wrangler pages deploy out"
+    "pages:deploy": "npm run pages:build && wrangler pages deploy out --project-name=prodrome-f0 --branch=main"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

@@ -75,19 +75,19 @@ export default function AlertsPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">High Priority</span>
                   <span className="text-lg font-bold text-red-500">
-                    {alerts.filter((a) => a.priority === 'high').length}
+                    {alerts.filter((a) => a.severity === 'high').length}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Medium Priority</span>
                   <span className="text-lg font-bold text-orange-500">
-                    {alerts.filter((a) => a.priority === 'medium').length}
+                    {alerts.filter((a) => a.severity === 'medium').length}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Low Priority</span>
                   <span className="text-lg font-bold text-yellow-500">
-                    {alerts.filter((a) => a.priority === 'low').length}
+                    {alerts.filter((a) => a.severity === 'low').length}
                   </span>
                 </div>
               </div>
@@ -97,13 +97,13 @@ export default function AlertsPage() {
             <div className="bg-card border border-border rounded-lg p-4">
               <h3 className="text-sm font-semibold text-foreground mb-3">Average Confidence</h3>
               <div className="text-3xl font-bold text-primary mb-2">
-                {Math.round(alerts.reduce((sum, a) => sum + a.confidence, 0) / alerts.length)}%
+                {alerts.length ? Math.round(alerts.reduce((sum, a) => sum + a.confidence, 0) / alerts.length * 100) : 0}%
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary"
                   style={{
-                    width: `${Math.round(alerts.reduce((sum, a) => sum + a.confidence, 0) / alerts.length)}%`,
+                    width: `${alerts.length ? Math.round(alerts.reduce((sum, a) => sum + a.confidence, 0) / alerts.length * 100) : 0}%`,
                   }}
                 />
               </div>

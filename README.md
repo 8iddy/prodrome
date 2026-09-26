@@ -34,4 +34,4 @@ Run tests with `python3 -m pytest`. Read [the local audit](docs/audit.md), [data
 
 ## Deployment
 
-The web application is a Cloudflare Pages-compatible static export. Build with `npm run pages:build`; verify a Pages preview before associating the existing `prodrome.health` custom domain. Deployment details are in [docs/cloudflare-deployment.md](docs/cloudflare-deployment.md).
+The web application is a Cloudflare Pages-compatible static export. Pushes to `main` automatically run the GitHub Actions deployment workflow to the existing `prodrome-f0` Pages project and `prodrome.health`, after the repository Cloudflare secrets documented in [docs/cloudflare-deployment.md](docs/cloudflare-deployment.md) are added.

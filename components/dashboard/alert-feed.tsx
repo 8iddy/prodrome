@@ -56,17 +56,17 @@ export default function AlertFeed({ alerts, expandedAlerts, onToggleAlert }: Ale
               <div className="flex items-start gap-3">
                 {/* Priority Badge */}
                 <div
-                  className={`px-2 py-1 rounded text-xs font-semibold border flex-shrink-0 mt-0.5 ${getPriorityColor(alert.priority)}`}
+                  className={`px-2 py-1 rounded text-xs font-semibold border flex-shrink-0 mt-0.5 ${getPriorityColor(alert.severity)}`}
                 >
-                  {alert.priority.charAt(0).toUpperCase() + alert.priority.slice(1)}
+                  {alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1)}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{alert.facilityName}</p>
-                  <p className="text-xs text-muted-foreground mb-1">{alert.district}</p>
-                  <p className="text-xs text-muted-foreground mb-2">{formatTime(alert.detectedTime)}</p>
+                  <p className="text-sm font-semibold text-foreground truncate">{alert.facility}</p>
+                  <p className="text-xs text-muted-foreground mb-1">{alert.region}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{alert.firstDetected}</p>
                   <p className="text-xs bg-primary/10 text-primary inline-block px-2 py-1 rounded">
-                    {alert.category}
+                    {alert.status}
                   </p>
                 </div>
 
@@ -86,14 +86,7 @@ export default function AlertFeed({ alerts, expandedAlerts, onToggleAlert }: Ale
                   <div>
                     <p className="text-xs font-semibold text-foreground mb-2">Signals Driving Alert:</p>
                     <div className="space-y-1">
-                      {alert.signals.map((signal, idx) => (
-                        <div key={idx} className="text-xs text-muted-foreground flex justify-between">
-                          <span>• {signal.name}</span>
-                          <span className="text-foreground font-medium">
-                            {signal.value} {signal.baseline && `(vs ${signal.baseline})`}
-                          </span>
-                        </div>
-                      ))}
+                      <div className="text-xs text-muted-foreground">• {alert.signal}</div>
                     </div>
                   </div>
 
@@ -104,11 +97,11 @@ export default function AlertFeed({ alerts, expandedAlerts, onToggleAlert }: Ale
                       <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary"
-                          style={{ width: `${alert.confidence}%` }}
+                          style={{ width: `${Math.round(alert.confidence * 100)}%` }}
                         />
                       </div>
                       <span className="text-xs font-semibold text-foreground w-8 text-right">
-                        {alert.confidence}%
+                        {Math.round(alert.confidence * 100)}%
                       </span>
                     </div>
                   </div>
@@ -116,7 +109,7 @@ export default function AlertFeed({ alerts, expandedAlerts, onToggleAlert }: Ale
                   {/* Recommendation */}
                   <div>
                     <p className="text-xs font-semibold text-foreground mb-1">Recommended Verification Steps:</p>
-                    <p className="text-xs text-muted-foreground">{alert.recommendation}</p>
+                    <p className="text-xs text-muted-foreground">{alert.recommendedAction}</p>
                   </div>
 
                   {/* Action Buttons */}
