@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "minimum_history_periods": 8,
+  "rolling_window": 26,
+  "z_score_threshold": 2.5,
+  "cusum_threshold": 5.0,
+  "risk_weights": {
+    "deviation": 0.35,
+    "change": 0.2,
+    "multivariate": 0.2,
+    "persistence": 0.15,
+    "spatial": 0.05,
+    "data_quality": 0.05
+  },
+  "severity_thresholds": {"high": 0.8, "medium": 0.65, "low": 0.55}
+}

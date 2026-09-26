@@ -7,9 +7,22 @@ instrumentation-client.ts
 
 # Common ignores
 node_modules/
+.pnpm-store/
 .next/
 .env*.local
 .DS_Store
 .vercel
 out/
 package-lock.json
+
+# Local surveillance source files and generated analytical artefacts
+data/raw/**
+data/processed/**
+data/synthetic/**
+data/fixtures/*.jsonl
+public/analytics/*.json
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/synthetic/.gitkeep
+!data/fixtures/.gitkeep
+!public/analytics/.gitkeep

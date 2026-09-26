@@ -15,12 +15,11 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'ProDrome - Early Outbreak Detection',
-  description: 'Surveillance from diagnostic system telemetry - detecting outbreaks 48-72 hours earlier.',
-  generator: 'v0.app',
+  title: 'ProDrome — Surveillance Research Platform',
+  description: 'Reproducible laboratory-signal surveillance research and retrospective analysis.',
   openGraph: {
-    title: 'ProDrome - Early Outbreak Detection',
-    description: 'Surveillance from diagnostic system telemetry - detecting outbreaks 48-72 hours earlier.',
+    title: 'ProDrome — Surveillance Research Platform',
+    description: 'Reproducible laboratory-signal surveillance research and retrospective analysis.',
   },
 }
 

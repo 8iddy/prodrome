@@ -1,4 +1,7 @@
-'use client'
+import ProDromeConsole from '@/components/prodrome-console'
+
+export default function Page() { return <ProDromeConsole /> }
+/*
 
 import { useState, useEffect } from 'react'
 import { mockAlerts, mockFacilities, type Alert } from '@/lib/mock-data'
@@ -401,3 +404,4 @@ export default function OperationsCenter() {
     </div>
   )
 }
+*/
