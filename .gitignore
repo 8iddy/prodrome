@@ -13,6 +13,7 @@ node_modules/
 .DS_Store
 .vercel
 out/
+tsconfig.tsbuildinfo
 package-lock.json
 
 # Local surveillance source files and generated analytical artefacts
