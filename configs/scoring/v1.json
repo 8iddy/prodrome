@@ -12,5 +12,14 @@
     "spatial": 0.05,
     "data_quality": 0.05
   },
-  "severity_thresholds": {"high": 0.8, "medium": 0.65, "low": 0.55}
+  "severity_thresholds": {"high": 0.8, "medium": 0.65, "low": 0.55},
+  "spatial_signal_risk": 0.3,
+  "isolation_forest": {"n_estimators": 25, "contamination": 0.1},
+  "operational_alert_policy": {
+    "minimum_risk_score": 0.55,
+    "require_combination": false,
+    "episode_grouping": false,
+    "episode_gap_periods": 0,
+    "cooldown_periods": 0
+  }
 }

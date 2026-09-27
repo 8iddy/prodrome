@@ -250,10 +250,63 @@ def write_jsonl(path: str | Path, records: Iterable[dict[str, Any]]) -> None:
 
 
 def _features(row: dict[str, Any]) -> list[str]:
-    return [f for f in ["tests_completed", "positive_tests", "positivity_rate", "median_tat_hours", "backlog_count", "rejected_samples", "reagent_consumption", "qc_failures"] if row.get(f) is not None]
+    return [f for f in ["tests_completed", "positive_tests", "positivity_rate", "median_tat_hours", "backlog_count", "rejected_samples", "reagent_consumption", "qc_failures", "reporting_completeness"] if row.get(f) is not None]
 
 
-def run_pipeline(records: list[dict[str, Any]], config_path: str | Path = ROOT / "configs/scoring/v1.json", as_of: str | None = None) -> dict[str, Any]:
+LOW_IS_ABNORMAL = {"reagent_consumption", "reporting_completeness"}
+INDICATOR_DOMAINS = {
+    "tests_completed": "testing_volume",
+    "positive_tests": "testing_volume",
+    "positivity_rate": "positivity",
+    "median_tat_hours": "laboratory_workflow",
+    "backlog_count": "laboratory_workflow",
+    "rejected_samples": "specimen_quality",
+    "reagent_consumption": "reagent_supply",
+    "qc_failures": "laboratory_quality",
+    "reporting_completeness": "reporting_quality",
+}
+
+
+def _independent_indicator_count(output: dict[str, Any]) -> int:
+    return len({INDICATOR_DOMAINS.get(driver["metric"], driver["metric"]) for driver in output["drivers"]})
+
+
+def _severity(risk_score: float, config: dict[str, Any], output: dict[str, Any]) -> str:
+    """Keep HIGH for corroborated or sustained episodes, never a lone low-level signal."""
+    policy = config.get("operational_alert_policy", {})
+    high = config["severity_thresholds"]["high"]
+    if risk_score >= high and (
+        output["persistence"] >= policy.get("high_minimum_persistence", 1)
+        or _independent_indicator_count(output) >= policy.get("high_minimum_indicators", 1)
+        or output.get("spatial_corroboration", 0) >= policy.get("high_minimum_spatial_corroboration", 99)
+    ):
+        return "high"
+    return "medium" if risk_score >= config["severity_thresholds"]["medium"] else "low"
+
+
+def _operational_eligible(output: dict[str, Any], config: dict[str, Any]) -> bool:
+    """Separate unusual measurements from alerts that merit human verification."""
+    policy = config.get("operational_alert_policy", {})
+    if output["risk_score"] < policy.get("minimum_risk_score", config["severity_thresholds"]["low"]):
+        return False
+    if not policy.get("require_combination", False):
+        return True
+    sustained = output["persistence"] >= policy.get("minimum_persistence", 2)
+    multi_indicator = _independent_indicator_count(output) >= policy.get("minimum_abnormal_indicators", 2)
+    spatial = output.get("spatial_corroboration", 0) >= policy.get("minimum_spatial_corroboration", 1)
+    strong_single_signal = (
+        output["persistence"] >= policy.get("strong_signal_persistence", 4)
+        and output["risk_score"] >= policy.get("strong_signal_risk_score", .8)
+    )
+    persistent_reporting_gap = (
+        "reporting_quality" in output.get("abnormal_indicator_domains", [])
+        and output["persistence"] >= policy.get("reporting_quality_persistence", 99)
+        and output["risk_score"] >= policy.get("reporting_quality_risk_score", 1.1)
+    )
+    return (sustained and (multi_indicator or spatial)) or strong_single_signal or persistent_reporting_gap
+
+
+def run_pipeline(records: list[dict[str, Any]], config_path: str | Path = ROOT / "configs/scoring/v2-balanced.json", as_of: str | None = None) -> dict[str, Any]:
     """Run chronological, no-future-data scoring. A row only uses earlier periods in its series."""
     config = json.loads(Path(config_path).read_text())
     filtered = [r for r in validate(records) if not as_of or (r.get("observation_date") or "") <= as_of]
@@ -273,7 +326,8 @@ def run_pipeline(records: list[dict[str, Any]], config_path: str | Path = ROOT /
                 median = float(np.median(values))
                 mad = float(np.median(np.abs(np.array(values) - median)))
                 scale = max(mad * 1.4826, abs(median) * .05, .01)
-                z = (float(row[feature])-median)/scale
+                direction = -1 if feature in LOW_IS_ABNORMAL else 1
+                z = direction * (float(row[feature])-median)/scale
                 if z >= config["z_score_threshold"]:
                     deviations.append(min(1.0, z/6)); drivers.append({"metric": feature, "observed": row[feature], "expected": round(median, 3), "z_score": round(z, 2)})
             cusum = 0.0
@@ -291,7 +345,8 @@ def run_pipeline(records: list[dict[str, Any]], config_path: str | Path = ROOT /
             # keeping replay practical for a local research workflow.
             if i % 4 == 0 and len(feature_list) >= 2 and len(history) >= 24 and all(h.get(f) is not None for h in history[-24:] for f in feature_list):
                 matrix = np.array([[h[f] for f in feature_list] for h in history[-52:]])
-                model = IsolationForest(n_estimators=25, contamination=.1, random_state=20260927)
+                forest = config.get("isolation_forest", {})
+                model = IsolationForest(n_estimators=forest.get("n_estimators", 25), contamination=forest.get("contamination", .1), random_state=20260927)
                 model.fit(matrix); isolation = max(0.0, min(1.0, -float(model.score_samples([[row[f] for f in feature_list]])[0])-.35))/.25
             deviation = max(deviations, default=0.0); persistence = persistence + 1 if deviation else 0
             spatial = 0.0  # filled as a deliberately conservative same-period corroboration pass below
@@ -303,29 +358,67 @@ def run_pipeline(records: list[dict[str, Any]], config_path: str | Path = ROOT /
             outputs.append(result)
     # Spatial corroboration: only rows with valid coordinates and multiple high signals in the same period.
     by_date=defaultdict(list)
+    spatial_signal_risk = config.get("spatial_signal_risk", .3)
     for output in outputs:
-        if output["risk_score"] >= .3 and output["observation"].get("latitude") is not None: by_date[output["observation"]["observation_date"]].append(output)
+        if output["risk_score"] >= spatial_signal_risk and output["drivers"] and output["observation"].get("latitude") is not None:
+            by_date[output["observation"]["observation_date"]].append(output)
     for output in outputs:
         related=by_date[output["observation"]["observation_date"]]
         corroborating=max(0, len({o["observation"]["location_id"] for o in related})-1)
         if corroborating:
             output["risk_score"]=round(min(1,output["risk_score"]+config["risk_weights"]["spatial"]),4)
-        if output["risk_score"] >= config["severity_thresholds"]["low"]:
-            severity="high" if output["risk_score"]>=config["severity_thresholds"]["high"] else "medium" if output["risk_score"]>=config["severity_thresholds"]["medium"] else "low"
-            drivers=output["drivers"]
-            primary=drivers[0] if drivers else {"metric":"combined indicators", "observed":None,"expected":None}
-            alert={"alert_id":str(uuid4()),"model_run_id":None,"dataset_id":output["observation"]["dataset_id"],"location":output["observation"]["location_name"],"pathogen":output["observation"]["pathogen"],"start_date":output["observation"]["observation_date"],"generated_date":utcnow(),"severity":severity,"risk_score":output["risk_score"],"confidence_category":"moderate" if output["features"] else "low","primary_driver":primary,"supporting_drivers":drivers[1:],"persistence":output["persistence"],"spatial_corroboration":corroborating,"data_quality":output["observation"]["data_quality_flags"],"verification_action":"Review laboratory and case surveillance data and request verification from the relevant surveillance team.","status":"retrospective/model-generated","mode":"SYNTHETIC" if output["observation"]["dataset_id"].startswith("synthetic") else "RETROSPECTIVE"}
+        output["spatial_corroboration"] = corroborating
+        output["abnormal_indicator_domains"] = sorted({INDICATOR_DOMAINS.get(driver["metric"], driver["metric"]) for driver in output["drivers"]})
+        output["anomaly_signal"] = bool(output["drivers"] and output["risk_score"] >= config["severity_thresholds"]["low"])
+        output["operational_eligible"] = _operational_eligible(output, config)
+
+    policy = config.get("operational_alert_policy", {})
+    grouped = defaultdict(list)
+    for output in outputs:
+        row = output["observation"]
+        grouped[(row["dataset_id"], row["location_id"], row["pathogen"])].append(output)
+    for series_outputs in grouped.values():
+        series_outputs.sort(key=lambda output: output["observation"]["observation_date"])
+        active_episode = False
+        quiet_periods = 0
+        last_alert_index = -10_000
+        for index, output in enumerate(series_outputs):
+            if not output["operational_eligible"]:
+                if active_episode:
+                    quiet_periods += 1
+                    if quiet_periods > policy.get("episode_gap_periods", 0):
+                        active_episode = False
+                continue
+            quiet_periods = 0
+            is_new_episode = not active_episode
+            active_episode = True
+            if policy.get("episode_grouping", False) and not is_new_episode:
+                continue
+            if index - last_alert_index <= policy.get("cooldown_periods", 0):
+                continue
+            row, drivers = output["observation"], output["drivers"]
+            primary = drivers[0] if drivers else {"metric": "combined indicators", "observed": None, "expected": None}
+            alert = {"alert_id": str(uuid4()), "model_run_id": None, "dataset_id": row["dataset_id"], "location_id": row["location_id"], "location": row["location_name"], "pathogen": row["pathogen"], "start_date": row["observation_date"], "generated_date": utcnow(), "severity": _severity(output["risk_score"], config, output), "risk_score": output["risk_score"], "confidence_category": "moderate" if output["features"] else "low", "primary_driver": primary, "supporting_drivers": drivers[1:], "persistence": output["persistence"], "spatial_corroboration": output["spatial_corroboration"], "data_quality": row["data_quality_flags"], "verification_action": "Review laboratory and case surveillance data and request verification from the relevant surveillance team.", "status": "retrospective/model-generated", "mode": "SYNTHETIC" if row["dataset_id"].startswith("synthetic") else "RETROSPECTIVE"}
             alerts.append(alert)
+            last_alert_index = index
     run_id=f"run-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     for a in alerts: a["model_run_id"]=run_id
-    return {"run_id":run_id,"model_version":"scoring-v1","configuration_version":config["version"],"created_at":utcnow(),"as_of":as_of,"records_scored":len(outputs),"alerts":alerts,"signals":outputs,"random_seed":20260927}
+    return {"run_id":run_id,"model_version":"scoring-v2","configuration_version":config["version"],"created_at":utcnow(),"as_of":as_of,"records_scored":len(outputs),"alerts":alerts,"signals":outputs,"random_seed":20260927}
 
 
 def evaluate(run: dict[str, Any], events: list[dict[str, Any]]) -> dict[str, Any]:
-    alerts=run["alerts"]; matched=0; delays=[]
-    for event in events:
-        candidates=[a for a in alerts if a["location"] and a["start_date"] and event["event_start"] <= a["start_date"] <= event["event_end"] and a["pathogen"]==event.get("pathogen")]
+    """Evaluate operational-alert episodes; a labelled false-alarm scenario is a negative control."""
+    alerts = run["alerts"]
+    alertable_events = [event for event in events if event["event_type"] != "deliberately_injected_false_alarm"]
+    matched_alert_ids, detected, delays = set(), 0, []
+    for event in alertable_events:
+        candidates = [alert for alert in alerts if alert["location_id"] == event["location_id"] and event["event_start"] <= alert["start_date"] <= event["event_end"] and alert["pathogen"] == event.get("pathogen")]
         if candidates:
-            matched += 1; delays.append((pd.Timestamp(min(a["start_date"] for a in candidates))-pd.Timestamp(event["event_start"])).days)
-    false_alerts=max(0,len(alerts)-matched)
-    return {"evaluation_id":f"evaluation-{run['run_id']}","dataset_id":"synthetic-lab-network","model_run_id":run["run_id"],"ground_truth_events":len(events),"event_detection_rate":round(matched/len(events),3) if events else None,"detected_events":matched,"generated_alerts":len(alerts),"false_alerts":false_alerts,"detection_delay_days":round(float(np.mean(delays)),2) if delays else None,"limitations":"Synthetic benchmark metrics apply only to labelled simulated scenarios; they are not evidence of real-world outbreak-detection performance."}
+            detected += 1
+            first = min(candidates, key=lambda alert: alert["start_date"])
+            matched_alert_ids.add(first["alert_id"])
+            delays.append((pd.Timestamp(first["start_date"]) - pd.Timestamp(event["event_start"])).days)
+    false_alerts = len(alerts) - len(matched_alert_ids)
+    location_periods = len({(signal["observation"]["location_id"], signal["observation"]["observation_date"]) for signal in run["signals"]})
+    mean_delay = round(float(np.mean(delays)), 2) if delays else None
+    return {"evaluation_id": f"evaluation-{run['run_id']}", "dataset_id": "synthetic-lab-network", "model_run_id": run["run_id"], "configuration_version": run["configuration_version"], "labelled_scenarios": len(events), "ground_truth_events": len(alertable_events), "negative_control_scenarios": len(events) - len(alertable_events), "event_detection_rate": round(detected / len(alertable_events), 3) if alertable_events else None, "detected_events": detected, "missed_events": len(alertable_events) - detected, "generated_alerts": len(alerts), "total_operational_alerts": len(alerts), "false_alerts": false_alerts, "false_alerts_per_location_period": round(false_alerts / location_periods, 4) if location_periods else None, "alert_precision": round(len(matched_alert_ids) / len(alerts), 3) if alerts else None, "detection_delay_days": mean_delay, "mean_detection_delay_days": mean_delay, "median_detection_delay_days": round(float(np.median(delays)), 2) if delays else None, "limitations": "Synthetic benchmark metrics apply only to labelled simulated scenarios; the deliberately injected false-alarm scenario is a negative control and is not counted as a true operational event."}

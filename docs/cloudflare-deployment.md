@@ -4,7 +4,7 @@ Production is the existing Cloudflare Pages project **`prodrome-f0`**, not a new
 
 ## Automatic deployment
 
-`.github/workflows/deploy-cloudflare-pages.yml` runs on every push to `main`. It installs the pinned pnpm dependency graph and Python requirements, regenerates the deterministic synthetic benchmark/model artefacts, runs the static Next.js build, and deploys `out/` to `prodrome-f0` with the official Cloudflare Wrangler Action.
+`.github/workflows/deploy-cloudflare-pages.yml` runs on every push to `main`. It installs the pinned pnpm dependency graph and Python requirements, regenerates the deterministic synthetic benchmark/model artefacts, runs the static Next.js build, and deploys `out/` to `prodrome-f0` with the repository-pinned `wrangler@4.141.0` through `pnpm exec wrangler`. It does not use `cloudflare/wrangler-action` to dynamically install Wrangler during CI.
 
 Before the first GitHub Actions deployment, add these repository secrets in **GitHub → 8iddy/prodrome → Settings → Secrets and variables → Actions**:
 

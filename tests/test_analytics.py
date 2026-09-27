@@ -1,4 +1,4 @@
-from analytics.core import WHOFluNetAdapter, generate_synthetic, run_pipeline, validate
+from analytics.core import WHOFluNetAdapter, evaluate, generate_synthetic, run_pipeline, validate
 
 
 def test_canonical_validation_preserves_missing_not_zero():
@@ -28,6 +28,18 @@ def test_replay_does_not_use_future_rows():
             row["positive_tests"] = 999999
     after = run_pipeline(changed, as_of=cutoff)
     assert [(s["observation"]["source_record_id"], s["risk_score"]) for s in before["signals"]] == [(s["observation"]["source_record_id"], s["risk_score"]) for s in after["signals"]]
+
+
+def test_operational_alerts_are_grouped_and_reject_the_single_dimension_control():
+    records, events = generate_synthetic()
+    run = run_pipeline(records)
+    result = evaluate(run, events)
+    assert len(run["alerts"]) == 5
+    assert {alert["location_id"] for alert in run["alerts"]} == {
+        "synthetic-kampala", "synthetic-gulu", "synthetic-mbarara", "synthetic-mbale", "synthetic-arua"
+    }
+    assert result["false_alerts"] == 0
+    assert result["detected_events"] == 5
 
 
 def test_flunet_adapter_maps_test_and_detection_fields():

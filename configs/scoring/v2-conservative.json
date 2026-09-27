@@ -1,0 +1,26 @@
+{
+  "version": "v2-conservative",
+  "minimum_history_periods": 16,
+  "rolling_window": 52,
+  "z_score_threshold": 3.5,
+  "cusum_threshold": 8.0,
+  "risk_weights": {"deviation": 0.45, "change": 0.1, "multivariate": 0.05, "persistence": 0.25, "spatial": 0.1, "data_quality": 0.05},
+  "severity_thresholds": {"high": 0.85, "medium": 0.7, "low": 0.62},
+  "spatial_signal_risk": 0.65,
+  "isolation_forest": {"n_estimators": 50, "contamination": 0.03},
+  "operational_alert_policy": {
+    "minimum_risk_score": 0.62,
+    "require_combination": true,
+    "minimum_persistence": 3,
+    "minimum_abnormal_indicators": 2,
+    "minimum_spatial_corroboration": 1,
+    "strong_signal_persistence": 5,
+    "strong_signal_risk_score": 0.85,
+    "high_minimum_persistence": 4,
+    "high_minimum_indicators": 2,
+    "high_minimum_spatial_corroboration": 1,
+    "episode_grouping": true,
+    "episode_gap_periods": 1,
+    "cooldown_periods": 6
+  }
+}
