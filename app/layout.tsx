@@ -11,10 +11,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'ProDrome — Surveillance Research Platform',
+  title: 'ProDrome - Surveillance Research Platform',
   description: 'Reproducible laboratory-signal surveillance research and retrospective analysis.',
   openGraph: {
-    title: 'ProDrome — Surveillance Research Platform',
+    title: 'ProDrome - Surveillance Research Platform',
     description: 'Reproducible laboratory-signal surveillance research and retrospective analysis.',
   },
 }
