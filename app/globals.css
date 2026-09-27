@@ -113,3 +113,52 @@ body {
     @apply text-xs leading-tight;
   }
 }
+
+.map-marker {
+  transition: filter 160ms ease;
+}
+
+.map-marker:focus-visible circle {
+  outline: none;
+  filter: drop-shadow(0 0 3px #f8fafc);
+}
+
+.map-marker-label {
+  fill: #e2e8f0;
+  font-size: 2.5px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: #070b11;
+  stroke-width: 1.2px;
+  stroke-linejoin: round;
+}
+
+.map-tooltip-title {
+  fill: #f8fafc;
+  font-size: 2.5px;
+  font-weight: 600;
+}
+
+.map-tooltip-copy {
+  fill: #94a3b8;
+  font-size: 2.2px;
+}
+
+.map-marker-ping {
+  animation: surveillance-ping 2.4s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.map-marker-ping-high { animation-duration: 1.9s; }
+.map-marker-ping-medium { animation-duration: 2.9s; opacity: .7; }
+.map-marker-ping-selected { animation-duration: 1.5s; stroke-width: .75; }
+
+@keyframes surveillance-ping {
+  0% { opacity: .75; transform: scale(.78); }
+  75%, 100% { opacity: 0; transform: scale(1.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-marker-ping { animation: none; opacity: .65; }
+}
