@@ -15,6 +15,11 @@ export function formatMetric(metric: string, value: number | null | undefined) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
+/** Display-only label cleanup. Canonical locations and provenance remain unchanged. */
+export function displayLocationName(locationName: string | null | undefined) {
+  return (locationName ?? '').replace(/^synthetic\s+/i, '')
+}
+
 export function driverText(driver?: Driver) {
   if (!driver?.metric) return 'Combined surveillance indicators'
   const baseline = driver.expected == null ? '' : ` vs expected ${formatMetric(driver.metric, driver.expected)}`
