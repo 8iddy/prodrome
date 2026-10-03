@@ -124,14 +124,16 @@ body {
 }
 
 .map-marker-label {
-  fill: #e2e8f0;
-  font-size: 2.5px;
+  fill: #cbd5e1;
+  font-size: 2.6px;
   font-weight: 600;
   paint-order: stroke;
   stroke: #070b11;
   stroke-width: 1.2px;
   stroke-linejoin: round;
 }
+
+.map-marker-label-selected { fill: #f8fafc; font-size: 2.9px; }
 
 .map-tooltip-title {
   fill: #f8fafc;

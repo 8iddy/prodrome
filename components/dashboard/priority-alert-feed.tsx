@@ -1,10 +1,24 @@
 'use client'
 
 import type { RunAlert } from '@/lib/surveillance'
-import { displayLocationName, driverText, severityRank } from '@/lib/surveillance'
+import { severityRank } from '@/lib/surveillance'
+import { AlertCard } from './alert-card'
 
-const styles: Record<string,string> = {critical:'border-red-500/60 text-red-300',high:'border-amber-500/60 text-amber-300',medium:'border-yellow-600/60 text-yellow-300',low:'border-slate-600 text-slate-400'}
-export function PriorityAlertFeed({ alerts, limit }: { alerts: RunAlert[]; limit?: number }) {
-  const ordered=[...alerts].sort((a,b)=>severityRank(b.severity)-severityRank(a.severity)||b.risk_score-a.risk_score||b.persistence-a.persistence).slice(0,limit)
-  return <section className="border border-slate-800 bg-[#0d1015]"><div className="flex items-center justify-between border-b border-slate-800 px-3 py-2"><div><p className="text-xs text-slate-200">Priority alert feed</p><p className="text-[10px] text-slate-500">Ranked by configured severity, risk, and persistence</p></div><span className="text-xs text-slate-500">{alerts.length}</span></div><div className="max-h-[430px] overflow-y-auto">{ordered.length ? ordered.map(alert=><article key={alert.alert_id} className="border-b border-slate-800/80 p-3 last:border-0"><div className="flex items-start gap-2"><span className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${styles[alert.severity]}`}>{alert.severity}</span><div className="min-w-0 flex-1"><p className="truncate text-sm text-slate-100">{displayLocationName(alert.location)}</p><p className="text-[11px] text-slate-500">{alert.pathogen} · {alert.start_date}</p></div><span className="text-sm text-amber-300">{alert.risk_score.toFixed(2)} ↑</span></div><p className="mt-2 text-xs leading-5 text-slate-300">{driverText(alert.primary_driver)}</p>{alert.supporting_drivers?.length>0 && <p className="text-xs leading-5 text-slate-500">Supporting: {driverText(alert.supporting_drivers[0])}</p>}<div className="mt-2 flex justify-between text-[10px] text-slate-500"><span>{alert.persistence} consecutive abnormal period{alert.persistence===1?'':'s'}</span><span>Verification recommended</span></div></article>) : <p className="p-4 text-sm text-slate-500">No active signals exceed the configured alert threshold.</p>}</div></section>
+export function sortAlerts(alerts: RunAlert[], by: 'priority' | 'recent' = 'priority') {
+  return [...alerts].sort((a, b) => by === 'recent'
+    ? b.start_date.localeCompare(a.start_date)
+    : severityRank(b.severity) - severityRank(a.severity) || b.risk_score - a.risk_score || b.start_date.localeCompare(a.start_date))
+}
+
+export function PriorityAlertFeed({ alerts, limit, compact = false, title = 'Alerts to check', subtitle = 'Most important first. Each alert says what changed and what to do next.', by = 'priority', maxHeight }: { alerts: RunAlert[]; limit?: number; compact?: boolean; title?: string; subtitle?: string; by?: 'priority' | 'recent'; maxHeight?: string }) {
+  const ordered = sortAlerts(alerts, by).slice(0, limit)
+  return <section className="flex flex-col border border-slate-800 bg-[#0d1015]">
+    <div className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
+      <div><h2 className="text-sm text-slate-100">{title}</h2><p className="mt-0.5 font-sans text-xs text-slate-500">{subtitle}</p></div>
+      <span className="border border-slate-700 px-2 py-0.5 text-xs text-slate-300">{alerts.length}</span>
+    </div>
+    <div className="overflow-y-auto" style={maxHeight ? { maxHeight } : undefined}>
+      {ordered.length ? ordered.map(alert => <AlertCard key={alert.alert_id} alert={alert} compact={compact} />) : <p className="p-4 font-sans text-sm text-slate-500">Every lab is within its normal range for this period.</p>}
+    </div>
+  </section>
 }

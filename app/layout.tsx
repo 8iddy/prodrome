@@ -12,10 +12,10 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'Prodrome - Laboratory Surveillance and Early Warning',
-  description: 'Reproducible laboratory-signal surveillance research and retrospective analysis.',
+  description: 'Reproducible surveillance research and retrospective analysis on laboratory signals.',
   openGraph: {
     title: 'Prodrome - Laboratory Surveillance and Early Warning',
-    description: 'Reproducible laboratory-signal surveillance research and retrospective analysis.',
+    description: 'Reproducible surveillance research and retrospective analysis on laboratory signals.',
   },
 }
 
