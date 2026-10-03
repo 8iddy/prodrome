@@ -37,3 +37,13 @@ The benchmark has six labelled scenarios: five expected operational scenarios an
 ## Evaluation limits and next checks
 
 The events are simulated, the locations are not independent real surveillance sites, and the data generator does not capture reporting changes, intervention effects, or real verification outcomes. Before changing thresholds for production data, calibrate the policy prospectively with public retrospective data and documented human adjudication. Do not turn unknown low-level scores into operational incidents merely to improve apparent detection rates.
+
+## Three benchmarks
+
+The Benchmark page has three parts, each with its own question. All are proof of concept benchmark results.
+
+1. **Simulated network (ground truth).** Does ProDrome find events whose timing is known? The results are above.
+2. **External validation on Public Health Scotland data.** Do the frozen rules behave sensibly on an independent series? Definitions and results are in [external-validation.md](external-validation.md). The definitions were committed before the results.
+3. **Ugandan series (WHO FluNet).** How do the rules behave on real Ugandan influenza testing from 2010 to 2026? The run raised 8 alerts on the national series. The run metadata notes the testing disruption of 2020 and 2021.
+
+All three use `configs/scoring/v2-balanced.json` unchanged. No threshold was tuned on the Scottish or FluNet data.

@@ -1,0 +1,72 @@
+{
+  "retrieved_at": "2026-10-03T19:39:40+00:00",
+  "retrieved_by": "Claude (Cowork session) on behalf of Luper",
+  "files": [
+    {
+      "file": "data/raw/phs/phs_cari_2025_26_25ad967b.csv.gz",
+      "publisher": "Public Health Scotland",
+      "resource_id": "25ad967b-efc0-41b0-875a-5c113eac72ee",
+      "description": "CARI weekly tests and positivity by age x sex x Health Board, season 2025/26",
+      "source_url": "https://www.opendata.nhs.scot/datastore/dump/25ad967b-efc0-41b0-875a-5c113eac72ee?format=csv",
+      "licence": "Open Government Licence v3.0",
+      "sha256_uncompressed_csv": "29a131ac4ea3a5b7fb92855725c472588354bcada9cbd7e54ae416b5cac065ef",
+      "rows": 339456
+    },
+    {
+      "file": "data/raw/phs/phs_cari_2024_25_1ff32e2c.csv.gz",
+      "publisher": "Public Health Scotland",
+      "resource_id": "1ff32e2c-d984-4bee-b073-731d163b6464",
+      "description": "CARI archive, season 2024/25",
+      "source_url": "https://www.opendata.nhs.scot/datastore/dump/1ff32e2c-d984-4bee-b073-731d163b6464?format=csv",
+      "licence": "Open Government Licence v3.0",
+      "sha256_uncompressed_csv": "e392dca20133b76a415344c00c2971b6743177386bb16d9647cf4811eb896328",
+      "rows": 346112
+    },
+    {
+      "file": "data/raw/phs/phs_cari_2023_24_1527fa51.csv.gz",
+      "publisher": "Public Health Scotland",
+      "resource_id": "1527fa51-571b-46db-9434-c1dcf4a1ffd8",
+      "description": "CARI archive, season 2023/24",
+      "source_url": "https://www.opendata.nhs.scot/dataset/49dc2d88-1cb0-4420-a5ea-d1bbada62fb2/resource/1527fa51-571b-46db-9434-c1dcf4a1ffd8/download/cari_2324_20260204.csv",
+      "licence": "Open Government Licence v3.0",
+      "sha256_uncompressed_csv": "fcb352b17838827371adc6e4b0f75d6ebab83acaa99e46e81f9653d20d0c76fb",
+      "rows": 346112
+    },
+    {
+      "file": "data/raw/phs/phs_cari_2022_23_b2938613.csv.gz",
+      "publisher": "Public Health Scotland",
+      "resource_id": "b2938613-93f7-4744-a768-91a2ffd35cd3",
+      "description": "CARI archive, season 2022/23",
+      "source_url": "https://www.opendata.nhs.scot/datastore/dump/b2938613-93f7-4744-a768-91a2ffd35cd3?format=csv",
+      "licence": "Open Government Licence v3.0",
+      "sha256_uncompressed_csv": "50af74f26aac38389f04686e52dd82fd944371df9506ed165a913d94e16433fe",
+      "rows": 346112
+    },
+    {
+      "file": "data/raw/phs/phs_cases_by_health_board_212412ba.csv.gz",
+      "publisher": "Public Health Scotland",
+      "resource_id": "212412ba-cff2-43b9-bd40-f8d80688d8bf",
+      "description": "Weekly laboratory confirmed cases of COVID-19, influenza and RSV by Health Board, 2016/17 to 2025/26",
+      "source_url": "https://www.opendata.nhs.scot/datastore/dump/212412ba-cff2-43b9-bd40-f8d80688d8bf?format=csv",
+      "licence": "Open Government Licence v3.0",
+      "sha256_uncompressed_csv": "e35035b13b6ebf888cb90407ddefa9a337190356abbd7191f41ba1efd8cf3ede",
+      "rows": 36345
+    },
+    {
+      "file": "data/raw/who/who_flunet_uganda_VIW_FNT_2006_2026.csv",
+      "publisher": "World Health Organization, Global Influenza Surveillance and Response System (FluNet)",
+      "description": "FluNet weekly influenza virological surveillance for Uganda, all origin sources (SENTINEL and NOTDEFINED rows), 27 Mar 2006 to 21 Sep 2026",
+      "source_url": "https://xmart-api-public.who.int/FLUMART/VIW_FNT?$format=csv&$filter=COUNTRY_CODE eq 'UGA'",
+      "licence": "WHO terms of use; cite FluNet/GISRS",
+      "sha256": "8bbbc23d7e53a60508d01577913e256bb5f5d0ff48ca22518825b9c25ef1da4a",
+      "rows": 930
+    },
+    {
+      "file": "data/external/phs_cari_health_board_weekly_all_ages.csv",
+      "publisher": "Derived by ProDrome from the four Public Health Scotland CARI files above",
+      "description": "CARI rows with AgeGroup = All ages and Sex = All sexes, seasons 2022/23 to 2025/26",
+      "sha256": "d5a947d0fccbb17b2c77a9fa4092b41a47543448c14a78e54bb89c8d0d15f3b2",
+      "rows": 43056
+    }
+  ]
+}
