@@ -27,3 +27,7 @@ public/analytics/*.json
 !data/synthetic/.gitkeep
 !data/fixtures/.gitkeep
 !public/analytics/.gitkeep
+
+# Python bytecode
+__pycache__/
+.pytest_cache/

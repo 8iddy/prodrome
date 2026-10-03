@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
-from uuid import uuid4
 
 import numpy as np
 import pandas as pd
@@ -116,12 +115,47 @@ class Adapter:
                 "transformation_version": self.transformation_version}
 
 
+def parse_yyyymmdd(value: Any) -> str | None:
+    """Parse PHS integer dates such as 20221003. A bare pd.to_datetime on the integer reads it as nanoseconds."""
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return None
+    parsed = pd.to_datetime(str(value).strip().split(".")[0], format="%Y%m%d", errors="coerce")
+    return None if pd.isna(parsed) else parsed.date().isoformat()
+
+
+PHS_PATHOGENS = {"Influenza (All)": "influenza", "Influenza A": "influenza-a", "Influenza B": "influenza-b",
+                 "RSV": "rsv", "COVID-19": "covid-19"}
+PHS_NATIONAL_CODE = "S92000003"
+HEALTH_BOARD_CENTROIDS = ROOT / "configs/geo/scotland-health-board-centroids.json"
+
+
+def phs_pathogen(value: Any) -> str:
+    raw = str(value or "").strip()
+    return PHS_PATHOGENS.get(raw) or raw.lower().replace(" (any type)", "").replace(" ", "-") or "unknown"
+
+
+def health_board_centroids() -> dict[str, dict[str, Any]]:
+    return json.loads(HEALTH_BOARD_CENTROIDS.read_text())["health_boards"]
+
+
+def _phs_location(code: str, name: str, centroids: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Health Boards carry centroids for spatial corroboration; the national series stays separate and unmapped."""
+    if code == PHS_NATIONAL_CODE or name == "Scotland":
+        return {"location_id": PHS_NATIONAL_CODE, "location_name": "Scotland", "location_type": "country"}
+    point = centroids.get(code, {})
+    return {"location_id": code, "location_name": name, "location_type": "health_board",
+            "latitude": point.get("latitude"), "longitude": point.get("longitude")}
+
+
 class WHOFluNetAdapter(Adapter):
     dataset_id = "who-flunet-uganda"
     publisher = "World Health Organization"
     source_url = "https://www.who.int/teams/global-influenza-programme/surveillance-and-monitoring/flunet"
+    transformation_version = "1.1.0"
 
     def transform(self, path: str | Path) -> list[dict[str, Any]]:
+        if Path(path).suffix.lower() == ".csv":
+            return self._transform_viw_fnt(path)
         frame = pd.read_excel(path, dtype=object)
         frame.columns = [str(c).strip() for c in frame.columns]
         frame = frame[frame.get("COUNTRY/AREA/TERRITORY", pd.Series(dtype=str)).astype(str).str.strip().eq("Uganda")]
@@ -141,25 +175,58 @@ class WHOFluNetAdapter(Adapter):
             records.append(record)
         return validate(records)
 
+    def _transform_viw_fnt(self, path: str | Path) -> list[dict[str, Any]]:
+        """Sum the WHO FluNet origin sources (SENTINEL, NOTDEFINED) into one national row per ISO week."""
+        frame = pd.read_csv(path, dtype={"ORIGIN_SOURCE": str})
+        if "COUNTRY_CODE" in frame.columns:
+            frame = frame[frame["COUNTRY_CODE"].astype(str).str.strip().eq("UGA")]
+        required = {"ISO_YEAR", "ISO_WEEK", "ISO_WEEKSTARTDATE", "ORIGIN_SOURCE", "SPEC_PROCESSED_NB", "SPEC_RECEIVED_NB", "INF_ALL"}
+        missing = required - set(frame.columns)
+        if missing: raise ValueError(f"FluNet VIW_FNT schema missing required fields: {sorted(missing)}")
+        records = []
+        for (year, week), group in frame.groupby(["ISO_YEAR", "ISO_WEEK"], sort=True):
+            flags = []
+            if group["ORIGIN_SOURCE"].nunique() < 2: flags.append("single_origin_source")
+            totals = {}
+            for field in ["SPEC_PROCESSED_NB", "SPEC_RECEIVED_NB", "INF_ALL"]:
+                values = [nullable_number(v) for v in group[field]]
+                present = [v for v in values if v is not None]
+                if len(present) < len(values): flags.append(f"null_{field.lower()}")
+                totals[field] = sum(present) if present else None
+            sources = "+".join(sorted(group["ORIGIN_SOURCE"].astype(str).unique()))
+            records.append(base_observation(
+                source_id="who-flunet", dataset_id=self.dataset_id, location_id="UGA", location_name="Uganda",
+                location_type="country", country="Uganda", region="Eastern Africa",
+                observation_date=iso_date(group["ISO_WEEKSTARTDATE"].iloc[0]), iso_year=int(year), iso_week=int(week),
+                pathogen="influenza", tests_ordered=totals["SPEC_RECEIVED_NB"], tests_completed=totals["SPEC_PROCESSED_NB"],
+                positive_tests=totals["INF_ALL"], source_record_id=f"flunet-uganda-{int(year)}-W{int(week):02d}-{sources}",
+                data_quality_flags=flags))
+        return validate(records)
+
 
 class ScotlandCARIAdapter(Adapter):
     dataset_id = "phs-cari"
     publisher = "Public Health Scotland"
     source_url = "https://www.opendata.nhs.scot/"
+    transformation_version = "1.1.0"
 
     def transform(self, path: str | Path) -> list[dict[str, Any]]:
         frame = pd.read_csv(path)
         required = {"WeekBeginning", "HBcode", "HBName", "Pathogen", "Tests", "Positives"}
         missing = required - set(frame.columns)
         if missing: raise ValueError(f"CARI schema missing required fields: {sorted(missing)}")
+        for column, value in [("AgeGroup", "All ages"), ("Sex", "All sexes")]:
+            if column in frame.columns: frame = frame[frame[column].astype(str).str.strip().eq(value)]
+        frame = frame[~frame["HBName"].astype(str).str.strip().eq("Unknown")]
+        centroids = health_board_centroids()
         rows = []
         for index, row in frame.iterrows():
             rows.append(base_observation(source_id="phs-cari", dataset_id=self.dataset_id,
-                location_id=str(row["HBcode"]), location_name=str(row["HBName"]), location_type="health_board",
-                country="Scotland", observation_date=iso_date(row["WeekBeginning"]), iso_year=nullable_number(row.get("ISOYear")),
-                iso_week=nullable_number(row.get("ISOWeek")), pathogen=normalise_pathogen(row["Pathogen"]),
+                **_phs_location(str(row["HBcode"]), str(row["HBName"]), centroids), country="Scotland",
+                observation_date=parse_yyyymmdd(row["WeekBeginning"]), iso_year=nullable_number(row.get("ISOYear")),
+                iso_week=nullable_number(row.get("ISOWeek")), pathogen=phs_pathogen(row["Pathogen"]),
                 tests_completed=nullable_number(row["Tests"]), positive_tests=nullable_number(row["Positives"]),
-                source_record_id=f"cari-{index}"))
+                source_record_id=f"cari-{row['HBcode']}-{row['WeekBeginning']}-{phs_pathogen(row['Pathogen'])}"))
         return validate(rows)
 
 
@@ -167,18 +234,22 @@ class ScotlandHealthBoardCasesAdapter(Adapter):
     dataset_id = "phs-health-board-cases"
     publisher = "Public Health Scotland"
     source_url = "https://www.opendata.nhs.scot/"
+    transformation_version = "1.1.0"
 
     def transform(self, path: str | Path) -> list[dict[str, Any]]:
         frame = pd.read_csv(path)
         required = {"WeekBeginning", "HBcode", "HBName", "Pathogen", "NumberCasesPerWeek"}
         missing = required - set(frame.columns)
         if missing: raise ValueError(f"Health Board cases schema missing required fields: {sorted(missing)}")
+        frame = frame[~frame["HBName"].astype(str).str.strip().eq("Unknown")]
+        centroids = health_board_centroids()
         return validate(base_observation(source_id="phs-health-board-cases", dataset_id=self.dataset_id,
-            location_id=str(row["HBcode"]), location_name=str(row["HBName"]), location_type="health_board",
-            country="Scotland", observation_date=iso_date(row["WeekBeginning"]), iso_year=nullable_number(row.get("ISOyear")),
-            iso_week=nullable_number(row.get("ISOweek")), pathogen=normalise_pathogen(row["Pathogen"]),
-            positive_tests=nullable_number(row["NumberCasesPerWeek"]), source_record_id=f"health-board-{index}")
-            for index, row in frame.iterrows())
+            **_phs_location(str(row["HBcode"]), str(row["HBName"]), centroids), country="Scotland",
+            observation_date=parse_yyyymmdd(row["WeekBeginning"]), iso_year=nullable_number(row.get("ISOyear")),
+            iso_week=nullable_number(row.get("ISOweek")), pathogen=phs_pathogen(row["Pathogen"]),
+            positive_tests=nullable_number(row["NumberCasesPerWeek"]),
+            source_record_id=f"phs-cases-{row['HBcode']}-{row['WeekBeginning']}-{phs_pathogen(row['Pathogen'])}")
+            for _, row in frame.iterrows())
 
 
 class SyntheticLabAdapter(Adapter):
@@ -306,6 +377,12 @@ def _operational_eligible(output: dict[str, Any], config: dict[str, Any]) -> boo
     return (sustained and (multi_indicator or spatial)) or strong_single_signal or persistent_reporting_gap
 
 
+def alert_identifier(row: dict[str, Any], configuration_version: str) -> str:
+    """Stable across reruns, so human reviews stay attached to the same alert."""
+    key = "|".join(str(row.get(k)) for k in ["dataset_id", "location_id", "pathogen", "observation_date"])
+    return "alert-" + hashlib.sha256(f"{key}|{configuration_version}".encode()).hexdigest()[:16]
+
+
 def run_pipeline(records: list[dict[str, Any]], config_path: str | Path = ROOT / "configs/scoring/v2-balanced.json", as_of: str | None = None) -> dict[str, Any]:
     """Run chronological, no-future-data scoring. A row only uses earlier periods in its series."""
     config = json.loads(Path(config_path).read_text())
@@ -398,7 +475,7 @@ def run_pipeline(records: list[dict[str, Any]], config_path: str | Path = ROOT /
                 continue
             row, drivers = output["observation"], output["drivers"]
             primary = drivers[0] if drivers else {"metric": "combined indicators", "observed": None, "expected": None}
-            alert = {"alert_id": str(uuid4()), "model_run_id": None, "dataset_id": row["dataset_id"], "location_id": row["location_id"], "location": row["location_name"], "pathogen": row["pathogen"], "start_date": row["observation_date"], "generated_date": utcnow(), "severity": _severity(output["risk_score"], config, output), "risk_score": output["risk_score"], "confidence_category": "moderate" if output["features"] else "low", "primary_driver": primary, "supporting_drivers": drivers[1:], "persistence": output["persistence"], "spatial_corroboration": output["spatial_corroboration"], "data_quality": row["data_quality_flags"], "verification_action": "Review laboratory and case surveillance data and request verification from the relevant surveillance team.", "status": "retrospective/model-generated", "mode": "SYNTHETIC" if row["dataset_id"].startswith("synthetic") else "RETROSPECTIVE"}
+            alert = {"alert_id": alert_identifier(row, config["version"]), "model_run_id": None, "dataset_id": row["dataset_id"], "location_id": row["location_id"], "location": row["location_name"], "pathogen": row["pathogen"], "start_date": row["observation_date"], "generated_date": utcnow(), "severity": _severity(output["risk_score"], config, output), "risk_score": output["risk_score"], "confidence_category": "moderate" if output["features"] else "low", "primary_driver": primary, "supporting_drivers": drivers[1:], "persistence": output["persistence"], "spatial_corroboration": output["spatial_corroboration"], "data_quality": row["data_quality_flags"], "verification_action": "Review laboratory and case surveillance data and request verification from the relevant surveillance team.", "status": "retrospective/model-generated", "mode": "SYNTHETIC" if row["dataset_id"].startswith("synthetic") else "RETROSPECTIVE"}
             alerts.append(alert)
             last_alert_index = index
     run_id=f"run-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"

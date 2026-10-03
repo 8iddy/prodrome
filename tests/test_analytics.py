@@ -1,4 +1,4 @@
-from analytics.core import WHOFluNetAdapter, evaluate, generate_synthetic, run_pipeline, validate
+from analytics.core import ScotlandCARIAdapter, ScotlandHealthBoardCasesAdapter, WHOFluNetAdapter, evaluate, generate_synthetic, run_pipeline, validate
 
 
 def test_canonical_validation_preserves_missing_not_zero():
@@ -48,3 +48,60 @@ def test_flunet_adapter_maps_test_and_detection_fields():
     assert records[0]["tests_completed"] == 173
     assert records[0]["positive_tests"] == 15
     assert records[0]["pathogen"] == "influenza"
+
+
+FLUNET_HEADER = "COUNTRY_CODE,ISO_WEEKSTARTDATE,ISO_YEAR,ISO_WEEK,ORIGIN_SOURCE,SPEC_PROCESSED_NB,SPEC_RECEIVED_NB,INF_ALL\n"
+
+
+def test_flunet_csv_sums_origin_sources_per_iso_week(tmp_path):
+    path = tmp_path / "flunet.csv"
+    path.write_text(FLUNET_HEADER
+        + "UGA,2024-01-01,2024,1,SENTINEL,40,42,5\n"
+        + "UGA,2024-01-01,2024,1,NOTDEFINED,60,61,7\n"
+        + "UGA,2024-01-08,2024,2,NOTDEFINED,50,50,\n"
+        + "KEN,2024-01-08,2024,2,SENTINEL,999,999,999\n")
+    records = WHOFluNetAdapter().transform(path)
+    assert [r["observation_date"] for r in records] == ["2024-01-01", "2024-01-08"]
+    first, second = records
+    assert (first["tests_completed"], first["tests_ordered"], first["positive_tests"]) == (100, 103, 12)
+    assert first["positivity_rate"] == 0.12
+    assert first["data_quality_flags"] == []
+    assert second["tests_completed"] == 50
+    assert second["positive_tests"] is None
+    assert {"single_origin_source", "null_inf_all"} <= set(second["data_quality_flags"])
+
+
+CARI_HEADER = "Season,ISOYear,ISOWeek,WeekBeginning,WeekEnding,HBName,HBcode,Pathogen,Tests,Positives,TestPositivity\n"
+
+
+def test_cari_parses_integer_dates_and_drops_unknown(tmp_path):
+    path = tmp_path / "cari.csv"
+    path.write_text(CARI_HEADER
+        + "2022/2023,2022,40,20221003,20221009,NHS Fife,S08000029,Influenza (All),50,5,10.0%\n"
+        + "2022/2023,2022,40,20221003,20221009,Scotland,S92000003,Influenza (All),900,90,10.0%\n"
+        + "2022/2023,2022,40,20221003,20221009,Unknown,Unknown,Influenza (All),3,1,33.3%\n"
+        + "2022/2023,2022,40,20221003,20221009,NHS Fife,S08000029,RSV,50,2,4.0%\n")
+    records = ScotlandCARIAdapter().transform(path)
+    assert {r["observation_date"] for r in records} == {"2022-10-03"}
+    assert "Unknown" not in {r["location_name"] for r in records}
+    fife = next(r for r in records if r["location_id"] == "S08000029" and r["pathogen"] == "influenza")
+    assert fife["location_type"] == "health_board" and fife["latitude"] is not None
+    national = next(r for r in records if r["location_name"] == "Scotland")
+    assert national["location_type"] == "country" and national["latitude"] is None
+    assert {r["pathogen"] for r in records} == {"influenza", "rsv"}
+
+
+def test_health_board_cases_parse_integer_dates(tmp_path):
+    path = tmp_path / "cases.csv"
+    path.write_text("_id,Season,ISOyear,ISOweek,WeekBeginning,WeekEnding,Pathogen,HBcode,HBName,HBQF,NumberCasesPerWeek,RateCasesPerWeek,Population\n"
+        + '1,2016/17,2016,40,20161003,20161009,Influenza (All),S08000015,NHS Ayrshire and Arran,"",3,0.8,369730\n'
+        + "2,2016/17,2016,40,20161003,20161009,Influenza (All),S92000003,Scotland,d,40,0.7,5400000\n")
+    records = ScotlandHealthBoardCasesAdapter().transform(path)
+    assert [r["observation_date"] for r in records] == ["2016-10-03", "2016-10-03"]
+    assert records[0]["positive_tests"] == 3
+    assert records[1]["location_type"] == "country"
+
+
+def test_alert_ids_are_stable_across_runs():
+    records, _ = generate_synthetic()
+    assert [a["alert_id"] for a in run_pipeline(records)["alerts"]] == [a["alert_id"] for a in run_pipeline(records)["alerts"]]

@@ -1,0 +1,24 @@
+{
+  "description": "Approximate area centroids of the 14 NHS Scotland Health Boards (2019 boundaries), in WGS84 decimal degrees, rounded to 0.001 degrees.",
+  "source": "Scottish Government, NHS Health Boards (Scotland), ScotGov/HealthSocialCare MapServer layer 0",
+  "source_url": "https://maps.gov.scot/server/rest/services/ScotGov/HealthSocialCare/MapServer/0",
+  "licence": "Open Government Licence v3.0",
+  "method": "Polygons requested in EPSG:4326 with a generalisation offset of 0.01 degrees. Area-weighted centroid of all rings, with longitude scaled by cos(57 degrees).",
+  "retrieved_at": "2026-10-03",
+  "health_boards": {
+    "S08000015": {"name": "NHS Ayrshire and Arran", "latitude": 55.451, "longitude": -4.625},
+    "S08000016": {"name": "NHS Borders", "latitude": 55.577, "longitude": -2.787},
+    "S08000017": {"name": "NHS Dumfries and Galloway", "latitude": 55.071, "longitude": -3.956},
+    "S08000019": {"name": "NHS Forth Valley", "latitude": 56.211, "longitude": -4.244},
+    "S08000020": {"name": "NHS Grampian", "latitude": 57.300, "longitude": -2.783},
+    "S08000022": {"name": "NHS Highland", "latitude": 57.280, "longitude": -4.911},
+    "S08000024": {"name": "NHS Lothian", "latitude": 55.904, "longitude": -3.098},
+    "S08000025": {"name": "NHS Orkney", "latitude": 59.030, "longitude": -3.036},
+    "S08000026": {"name": "NHS Shetland", "latitude": 60.397, "longitude": -1.251},
+    "S08000028": {"name": "NHS Western Isles", "latitude": 57.916, "longitude": -6.864},
+    "S08000029": {"name": "NHS Fife", "latitude": 56.231, "longitude": -3.121},
+    "S08000030": {"name": "NHS Tayside", "latitude": 56.610, "longitude": -3.554},
+    "S08000031": {"name": "NHS Greater Glasgow and Clyde", "latitude": 55.882, "longitude": -4.447},
+    "S08000032": {"name": "NHS Lanarkshire", "latitude": 55.668, "longitude": -3.840}
+  }
+}
