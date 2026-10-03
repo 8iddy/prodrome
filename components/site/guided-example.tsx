@@ -9,7 +9,7 @@ import type { AnalyticsRun, RunAlert, Signal } from '@/lib/surveillance'
 import { SIGNAL_THRESHOLD, displayLocationName, formatDate, formatMetric, metricLabels, rollingMedian } from '@/lib/surveillance'
 import { OperationsHeader } from '@/components/dashboard/operations-header'
 import { SiteFooter } from '@/components/dashboard/operations-dashboard'
-import { AlertCard, SyntheticTag } from '@/components/dashboard/alert-card'
+import { AlertCard } from '@/components/dashboard/alert-card'
 
 type Ctx = {
   value: (lab: string, date: string, metric: string) => number | null
@@ -41,15 +41,15 @@ const STEPS: Step[] = [
     kicker: 'Week of 14 Jul 2025', title: 'Something changes', lab: MBALE, metric: pos, from: '2024-09-02', to: '2025-10-27', reveal: '2025-07-14', highlight: ['2025-07-14', '2025-07-14'],
     body: c => <>
       <p>Positive tests jump to <b>{formatMetric(pos, c.value(MBALE, '2025-07-14', pos))}</b>. The share of tests that are positive rises to <b>{formatMetric(rate, c.value(MBALE, '2025-07-14', rate))}</b>.</p>
-      <p>ProDrome marks the week as <span className="text-amber-300">unusual</span> (the amber dot) and keeps watching. <b>It waits for a second week before it raises an alert.</b></p>
-      <p>A single unusual week can come from a data entry error, a backlog of old samples or a short testing drive. Waiting for a second week keeps false alarms low.</p>
+      <p>ProDrome marks the week as a <span className="text-amber-300">signal</span> (the amber dot) and keeps watching. <b>It waits for a second week before it raises an alert.</b></p>
+      <p>A single signal can come from a data entry error, a backlog of old samples or a short testing drive. Waiting for a second week keeps false alarms low.</p>
     </>,
     stats: c => [['Positive tests', `${formatMetric(pos, c.value(MBALE, '2025-07-14', pos))} (normal ${formatMetric(pos, c.normal(MBALE, '2025-07-14', pos))})`], ['Share positive', `${formatMetric(rate, c.value(MBALE, '2025-07-14', rate))} (normal ${formatMetric(rate, c.normal(MBALE, '2025-07-14', rate))})`], ['Alert status', 'Watching']],
   },
   {
     kicker: 'Week of 21 Jul 2025', title: 'The change holds, and another lab sees it too', lab: MBALE, compare: ARUA, metric: pos, from: '2024-09-02', to: '2025-10-27', reveal: '2025-07-21', highlight: ['2025-07-14', '2025-07-21'], showAlertLine: true,
     body: c => <>
-      <p>A second unusual week: <b>{formatMetric(pos, c.value(MBALE, '2025-07-21', pos))}</b> positive tests at {c.name(MBALE)}.</p>
+      <p>A second signal: <b>{formatMetric(pos, c.value(MBALE, '2025-07-21', pos))}</b> positive tests at {c.name(MBALE)}.</p>
       <p>In the same weeks, {c.name(ARUA)} (purple line), in another region, shows the same rise.</p>
       <p>Now the signs line up. More tests are positive, and a larger share of them. The rise has lasted two weeks. A second lab sees it too. <b>ProDrome raises an alert.</b></p>
     </>,
@@ -75,14 +75,14 @@ const STEPS: Step[] = [
     body: c => <>
       <p>For two weeks, {c.name(SOROTI)} ran more than twice its normal number of tests: <b>{formatMetric(tests, c.value(SOROTI, '2024-05-20', tests))}</b> against a normal {formatMetric(tests, c.normal(SOROTI, '2024-05-20', tests))}.</p>
       <p>Positive tests rose with them, and the <b>share</b> of positive tests stayed close to normal ({formatMetric(rate, c.value(SOROTI, '2024-05-20', rate))} against {formatMetric(rate, c.normal(SOROTI, '2024-05-20', rate))}). That pattern usually points to more testing.</p>
-      <p>Only one kind of sign changed, and the other labs stayed normal. ProDrome kept watching and <b>held the alert</b>. We placed this test spike in the data on purpose, to check that ProDrome stays quiet in this case.</p>
+      <p>One kind of sign changed, and the other labs stayed normal. ProDrome kept watching and <b>held the alert</b>. We placed this test spike in the data on purpose, to check that ProDrome stays quiet in this case.</p>
     </>,
     stats: () => [['Kind of sign', 'Test volume'], ['Other labs with a change', '0'], ['Alert status', 'Held, as expected']],
   },
   {
     kicker: 'Your turn', title: 'Now explore the dashboard', lab: MBALE, compare: ARUA, metric: pos, from: '2023-01-02', to: '2025-12-22', reveal: '2025-12-22', showAlertLine: true, final: true,
     body: () => <>
-      <p>You have followed the full path: weekly numbers, an unusual week, a pattern that holds, the alert, and a test spike that needed no alert.</p>
+      <p>You have followed the full path: weekly numbers, a signal, a pattern that holds, the alert, and a test spike that needed no alert.</p>
       <p>The dashboard shows the same thing for all six labs. It also shows two other kinds of alert: a <span className="text-violet-300">lab operations problem</span> (slow results, failed quality checks) and a <span className="text-sky-300">reporting gap</span> (missing weekly reports).</p>
     </>,
   },
@@ -116,7 +116,7 @@ function StoryChart({ step, series, ctx }: { step: Step; series: Map<string, Sig
     const cmp = new Map((series.get(step.compare ?? '') ?? []).map(s => [s.observation.observation_date, s.observation[step.metric]]))
     return main.map((s, i) => ({ s, base: base[i] })).filter(({ s }) => s.observation.observation_date >= step.from && s.observation.observation_date <= step.to).map(({ s, base }) => {
       const d = s.observation.observation_date, shown = d <= step.reveal
-      const flagged = shown && (s.anomaly_signal ?? (s.risk_score >= SIGNAL_THRESHOLD && s.drivers.length > 0))
+      const flagged = shown && (s.anomaly_signal ?? (s.risk_score >= SIGNAL_THRESHOLD && (s.drivers?.length ?? 0) > 0))
       return { date: d, all: s.observation[step.metric], observed: shown ? s.observation[step.metric] : null, normal: shown ? base : null, compare: shown && step.compare ? cmp.get(d) ?? null : null, flag: flagged ? s.observation[step.metric] : null }
     })
   }, [step, series])
@@ -136,7 +136,7 @@ function StoryChart({ step, series, ctx }: { step: Step; series: Map<string, Sig
         <Line dataKey="normal" name="Normal level" stroke="#94a3b8" strokeDasharray="5 4" dot={false} strokeWidth={1.4} isAnimationActive={false} connectNulls />
         {step.compare && <Line dataKey="compare" name={ctx.name(step.compare)} stroke="#a78bfa" dot={false} strokeWidth={1.6} strokeOpacity={0.85} isAnimationActive={false} />}
         <Line dataKey="observed" name={ctx.name(step.lab)} stroke="#22d3ee" dot={false} strokeWidth={2.2} isAnimationActive={false} />
-        <Line dataKey="flag" name="Unusual week" stroke="none" legendType="none" dot={{ r: 4, fill: '#f59e0b', stroke: '#0d1015', strokeWidth: 1.5 }} activeDot={false} isAnimationActive={false} />
+        <Line dataKey="flag" name="Signal" stroke="none" legendType="none" dot={{ r: 4, fill: '#f59e0b', stroke: '#0d1015', strokeWidth: 1.5 }} activeDot={false} isAnimationActive={false} />
       </LineChart>
     </ResponsiveContainer>
   </div>
@@ -159,7 +159,7 @@ export function GuidedExample() {
       <div className="max-w-3xl">
         <p className="text-[10px] uppercase tracking-[.18em] text-cyan-300/80">Guided example · about 2 minutes</p>
         <h1 className="mt-2 font-sans text-2xl font-semibold text-slate-50 md:text-3xl">Follow one alert from start to finish</h1>
-        <p className="mt-2 font-sans text-sm leading-6 text-slate-400">See how ProDrome turns weekly laboratory numbers into an alert for the surveillance team. The data is synthetic.</p>
+        <p className="mt-2 font-sans text-sm leading-6 text-slate-400">See how ProDrome turns weekly laboratory numbers into an alert for the surveillance team. The example uses the simulated laboratory network, where the timing of each event is known.</p>
       </div>
       <ol className="mt-6 grid grid-cols-7 gap-1.5" aria-label="Steps">
         {STEPS.map((s, i) => <li key={s.title}><button onClick={() => go(i)} aria-current={i === index ? 'step' : undefined} aria-label={`Step ${i + 1}: ${s.title}`} className="group block w-full text-left">
@@ -171,12 +171,12 @@ export function GuidedExample() {
         <div className="mt-6 grid items-start gap-5 lg:grid-cols-[1.35fr_1fr]">
           <section className="border border-slate-800 bg-[#0d1015] p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="inline-flex flex-wrap items-center gap-2 text-sm text-slate-100">{metricLabels[step.metric]} per week · {ctx.name(step.lab)} <SyntheticTag /></p>
+              <p className="inline-flex flex-wrap items-center gap-2 text-sm text-slate-100">{metricLabels[step.metric]} per week · {ctx.name(step.lab)}</p>
               <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
                 <span className="inline-flex items-center gap-1.5"><i className="h-0.5 w-4 bg-cyan-400" />{ctx.name(step.lab)}</span>
                 {step.compare && <span className="inline-flex items-center gap-1.5"><i className="h-0.5 w-4 bg-violet-400" />{ctx.name(step.compare)}</span>}
                 <span className="inline-flex items-center gap-1.5"><i className="w-4 border-t border-dashed border-slate-400" />Normal level</span>
-                <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-400" />Unusual week</span>
+                <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-400" />Signal</span>
               </div>
             </div>
             <div className="mt-3"><StoryChart step={step} series={series} ctx={ctx} /></div>

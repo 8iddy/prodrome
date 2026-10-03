@@ -9,7 +9,7 @@ import type { AlertKind } from '@/lib/surveillance'
 import { SIGNAL_THRESHOLD, alertKinds, displayLocationName, rollingMedian } from '@/lib/surveillance'
 import { OperationsHeader } from '@/components/dashboard/operations-header'
 import { SiteFooter } from '@/components/dashboard/operations-dashboard'
-import { AlertCard, KIND_STYLE, SyntheticTag } from '@/components/dashboard/alert-card'
+import { AlertCard, KIND_STYLE } from '@/components/dashboard/alert-card'
 
 const LAB = 'synthetic-mbale'
 
@@ -25,7 +25,7 @@ function HeroVisual() {
   return <div className="border border-slate-800 bg-[#0b0f14] shadow-[0_0_80px_-30px_rgba(34,211,238,.35)]">
     <div className="flex items-center justify-between border-b border-slate-800 px-4 py-2.5">
       <p className="text-[10px] uppercase tracking-[.16em] text-slate-400">Example · positive tests per week</p>
-      <span className="inline-flex items-center gap-1.5 text-xs text-slate-300">{name || '…'}<SyntheticTag /></span>
+      <span className="inline-flex items-center gap-1.5 text-xs text-slate-300">{name || '…'}</span>
     </div>
     <div className="h-[170px] px-2 pt-3">
       {data.length > 0 && <ResponsiveContainer width="100%" height="100%">
@@ -43,7 +43,7 @@ function HeroVisual() {
     <div className="flex flex-wrap gap-x-4 gap-y-1 px-4 pb-3 pt-1 text-[10px] text-slate-500">
       <span className="inline-flex items-center gap-1.5"><i className="h-0.5 w-4 bg-cyan-400" />Reported</span>
       <span className="inline-flex items-center gap-1.5"><i className="w-4 border-t border-dashed border-slate-400" />Normal level</span>
-      <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-400" />Unusual week</span>
+      <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-400" />Signal</span>
     </div>
     {alert ? <div className="border-t border-slate-800"><p className="px-4 pt-3 text-[10px] uppercase tracking-[.16em] text-slate-400">The alert ProDrome sends</p><AlertCard alert={alert} compact /></div> : <div className="h-40" />}
   </div>
@@ -82,7 +82,7 @@ export function Landing() {
               <Link href="/example" className="inline-flex items-center gap-2 bg-cyan-400 px-5 py-3 text-sm font-semibold text-[#06121a] transition hover:bg-cyan-300"><PlayCircle size={18} />See how it works · 2 min</Link>
               <Link href="/dashboard" className="inline-flex items-center gap-2 border border-slate-600 px-5 py-3 text-sm text-slate-100 transition hover:border-slate-400">Open the dashboard<ArrowRight size={16} /></Link>
             </div>
-            <p className="mt-5 font-sans text-xs text-slate-500">This demonstration uses synthetic data.</p>
+            <p className="mt-5 font-sans text-xs text-slate-500">The example uses the simulated laboratory network. ProDrome also runs on public surveillance data from WHO FluNet for Uganda and Public Health Scotland.</p>
           </div>
           <HeroVisual />
         </div>
@@ -137,7 +137,7 @@ export function Landing() {
 
       <section className="mx-auto max-w-7xl px-4 py-14 md:px-6">
         <div className="flex flex-col items-start gap-6 border border-cyan-900/60 bg-gradient-to-r from-cyan-950/40 to-transparent p-6 md:flex-row md:items-center md:justify-between md:p-8">
-          <div><h2 className="font-sans text-2xl font-semibold text-slate-50">Follow one alert from start to finish</h2><p className="mt-2 max-w-xl font-sans text-sm leading-6 text-slate-400">Seven steps: a normal lab, an unusual week, the alert, and a test spike that needed no alert.</p></div>
+          <div><h2 className="font-sans text-2xl font-semibold text-slate-50">Follow one alert from start to finish</h2><p className="mt-2 max-w-xl font-sans text-sm leading-6 text-slate-400">Seven steps: a normal lab, a signal, the alert, and a test spike that needed no alert.</p></div>
           <div className="flex flex-wrap gap-3">
             <Link href="/example" className="inline-flex items-center gap-2 bg-cyan-400 px-5 py-3 text-sm font-semibold text-[#06121a] hover:bg-cyan-300"><PlayCircle size={18} />Start the example</Link>
             <Link href="/methods" className="inline-flex items-center gap-2 border border-slate-600 px-5 py-3 text-sm text-slate-100 hover:border-slate-400"><ClipboardCheck size={16} />How it decides</Link>

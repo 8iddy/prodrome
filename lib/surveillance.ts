@@ -1,7 +1,7 @@
 export type Driver = { metric: string; observed: number | null; expected: number | null; z_score?: number }
-export type Signal = { risk_score: number; persistence: number; drivers: Driver[]; observation: Record<string, any>; anomaly_signal?: boolean; spatial_corroboration?: number }
-export type RunAlert = { alert_id: string; severity: 'low' | 'medium' | 'high' | 'critical'; location: string; location_id?: string; pathogen: string; risk_score: number; persistence: number; primary_driver: Driver; supporting_drivers: Driver[]; start_date: string; verification_action: string; spatial_corroboration?: number }
-export type AnalyticsRun = { run_id: string; model_version: string; configuration_version: string; created_at: string; records_scored: number; alerts: RunAlert[]; signals: Signal[] }
+export type Signal = { risk_score: number; persistence: number; drivers?: Driver[]; observation: Record<string, any>; anomaly_signal?: boolean; spatial_corroboration?: number }
+export type RunAlert = { alert_id: string; dataset_id?: string; severity: 'low' | 'medium' | 'high' | 'critical'; location: string; location_id?: string; pathogen: string; risk_score: number; persistence: number; primary_driver: Driver; supporting_drivers: Driver[]; start_date: string; verification_action: string; spatial_corroboration?: number; data_quality?: string[] }
+export type AnalyticsRun = { run_id: string; dataset_id?: string; metadata?: Record<string, any>; model_version: string; configuration_version: string; created_at: string; records_scored: number; alerts: RunAlert[]; signals: Signal[] }
 
 /** Score at which a week counts as unusual (configs/scoring/v2-balanced.json → severity_thresholds.low). */
 export const SIGNAL_THRESHOLD = 0.58
@@ -33,11 +33,12 @@ export function formatMetric(metric: string, value: number | null | undefined) {
 
 /** Short display name: "Synthetic Mbale Laboratory" → "Mbale lab". Canonical names stay unchanged in the data. */
 export function displayLocationName(locationName: string | null | undefined) {
-  return (locationName ?? '').replace(/^synthetic\s+/i, '').replace(/\s+laboratory$/i, ' lab')
+  return (locationName ?? '').replace(/^synthetic\s+/i, '').replace(/\s+laboratory$/i, ' lab').replace(/^NHS\s+/, '')
 }
 
-export function isSyntheticName(locationName: string | null | undefined) {
-  return /^synthetic\s+/i.test(locationName ?? '')
+/** A week counts as a signal when the model marked it, or when its score passed the signal level with a driver. */
+export function isSignal(signal: Signal) {
+  return Boolean(signal.anomaly_signal ?? (signal.risk_score >= SIGNAL_THRESHOLD && signal.drivers?.length))
 }
 
 export function formatDate(value: string | null | undefined) {
@@ -148,8 +149,8 @@ export function levelWord(severity: string) {
 
 /** Plain status for a single week at a lab. */
 export function weekStatus(signal: Signal): { label: string; tone: 'normal' | 'watch' | 'unusual' } {
-  if (signal.risk_score >= 0.68 && signal.drivers.length) return { label: 'Unusual', tone: 'unusual' }
-  if (signal.risk_score >= SIGNAL_THRESHOLD && signal.drivers.length) return { label: 'Watch', tone: 'watch' }
+  if (signal.risk_score >= 0.68 && signal.drivers?.length) return { label: 'Strong signal', tone: 'unusual' }
+  if (signal.risk_score >= SIGNAL_THRESHOLD && signal.drivers?.length) return { label: 'Signal', tone: 'watch' }
   return { label: 'Normal', tone: 'normal' }
 }
 

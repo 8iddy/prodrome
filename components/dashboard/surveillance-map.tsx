@@ -4,13 +4,12 @@ import { useMemo, useState } from 'react'
 import type { Signal } from '@/lib/surveillance'
 import { displayLocationName, driverText, formatDate, formatMetric, latestByLocation, weekStatus } from '@/lib/surveillance'
 import { GEO, LAKES_PATH, NEIGHBOUR_PATH, UGANDA_PATH } from '@/lib/uganda-geo'
-import { SyntheticTag } from './alert-card'
 
 type Tone = 'normal' | 'watch' | 'unusual'
 export const TONE: Record<Tone, { label: string; color: string; text: string; help: string }> = {
   normal: { label: 'Normal', color: '#2dd4bf', text: 'text-teal-300', help: 'Numbers are within the usual range' },
-  watch: { label: 'Watch', color: '#f59e0b', text: 'text-amber-300', help: 'Some change, under watch' },
-  unusual: { label: 'Unusual', color: '#fb4b65', text: 'text-rose-300', help: 'Large change that needs a check' },
+  watch: { label: 'Signal', color: '#f59e0b', text: 'text-amber-300', help: 'An unusual week. ProDrome keeps watching.' },
+  unusual: { label: 'Strong signal', color: '#fb4b65', text: 'text-rose-300', help: 'A large change from the normal level' },
 }
 
 const px = (lon: number) => ((lon - GEO.minLon) / (GEO.maxLon - GEO.minLon)) * GEO.width
@@ -56,7 +55,7 @@ export function SurveillanceMap({ signals, selectedId, onSelect, title = 'Lab st
     {selected && o && status && <div className="border-t border-slate-800 bg-[#090c11] p-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: TONE[status.tone].color }} />
-        <p className="text-sm text-slate-100">{displayLocationName(o.location_name)}</p><SyntheticTag />
+        <p className="text-sm text-slate-100">{displayLocationName(o.location_name)}</p>
         <span className={`ml-auto text-xs ${TONE[status.tone].text}`}>{status.label} · week of {formatDate(o.observation_date)}</span>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-3 text-[11px] text-slate-500">
@@ -64,7 +63,7 @@ export function SurveillanceMap({ signals, selectedId, onSelect, title = 'Lab st
         <span>Positivity<b className="mt-0.5 block text-base font-medium text-slate-100">{formatMetric('positivity_rate', o.positivity_rate)}</b></span>
         <span>Turnaround<b className="mt-0.5 block text-base font-medium text-slate-100">{formatMetric('median_tat_hours', o.median_tat_hours)}</b></span>
       </div>
-      <p className="mt-3 font-sans text-xs leading-5 text-slate-400">{status.tone === 'normal' ? `${o.pathogen[0].toUpperCase()}${o.pathogen.slice(1)} testing is within the normal range for this lab.` : `Main change: ${driverText(selected.drivers[0])}.`}</p>
+      <p className="mt-3 font-sans text-xs leading-5 text-slate-400">{status.tone === 'normal' ? `${o.pathogen[0].toUpperCase()}${o.pathogen.slice(1)} testing is within the normal range for this lab.` : `Main change: ${driverText(selected.drivers?.[0])}.`}</p>
     </div>}
   </section>
 }
