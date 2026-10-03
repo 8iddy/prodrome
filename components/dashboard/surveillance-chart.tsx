@@ -17,7 +17,12 @@ function Key({ swatch, label }: { swatch: React.ReactNode; label: string }) {
   return <span className="inline-flex items-center gap-1.5 whitespace-nowrap">{swatch}{label}</span>
 }
 
-export function SurveillanceChart({ signals, metric = 'positive_tests', onMetric, alerts = [], height = 340 }: { signals: Signal[]; metric?: string; onMetric?: (metric: string) => void; alerts?: RunAlert[]; height?: number }) {
+export type SeriesChange = { date: string; label: string; description?: string }
+
+/** Alert labels sit on the chart when there are few. With more, they show on hover so they never overlap. */
+const MAX_ALERT_LABELS = 3
+
+export function SurveillanceChart({ signals, metric = 'positive_tests', onMetric, alerts = [], height = 340, changes = [] }: { signals: Signal[]; metric?: string; onMetric?: (metric: string) => void; alerts?: RunAlert[]; height?: number; changes?: SeriesChange[] }) {
   const available = ['positive_tests', 'positivity_rate', 'tests_completed', 'median_tat_hours', 'backlog_count', 'reporting_completeness'].filter(key => signals.some(s => s.observation[key] != null))
   const single = new Set(signals.map(s => s.observation.location_id)).size === 1
   const name = single ? displayLocationName(signals[0]?.observation.location_name) : 'All locations'
@@ -31,6 +36,9 @@ export function SurveillanceChart({ signals, metric = 'positive_tests', onMetric
   }, [signals, metric])
   const alertDates = single ? alerts.filter(a => (a.location_id ?? '') === signals[0]?.observation.location_id || a.location === signals[0]?.observation.location_name).map(a => a.start_date) : []
   const pct = metric === 'positivity_rate' || metric === 'reporting_completeness'
+  const labelled = alertDates.length <= MAX_ALERT_LABELS
+  const alertSet = new Set(alertDates)
+  const shownChanges = changes.filter(c => data.length && c.date >= data[0].date && c.date <= data[data.length - 1].date)
   return <section className="border border-slate-800 bg-[#0d1015] p-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div><h2 className="text-sm text-slate-100">{metricLabels[metric]} per week · {name}</h2><ChartNote>{metricHelp[metric]} The dashed line is the normal level (median of the past 52 weeks). Amber dots mark signals, the weeks ProDrome found unusual.</ChartNote></div>
@@ -40,7 +48,8 @@ export function SurveillanceChart({ signals, metric = 'positive_tests', onMetric
       <Key swatch={<i className="h-0.5 w-4 bg-cyan-400" />} label="Reported" />
       <Key swatch={<i className="w-4 border-t border-dashed border-slate-400" />} label="Normal level" />
       <Key swatch={<i className="h-2 w-2 rounded-full bg-amber-400" />} label="Signal" />
-      {alertDates.length > 0 && <Key swatch={<i className="h-3 w-px bg-rose-400" />} label="Alert raised" />}
+      {alertDates.length > 0 && <Key swatch={<i className="h-3 w-px bg-rose-400" />} label={labelled ? 'Alert raised' : 'Alert raised (hover for date)'} />}
+      {shownChanges.length > 0 && <Key swatch={<i className="h-3 border-l border-dashed border-sky-400" />} label="Series change" />}
     </div>
     <div style={{ height }} className="mt-2">
       <ResponsiveContainer width="100%" height="100%">
@@ -48,8 +57,9 @@ export function SurveillanceChart({ signals, metric = 'positive_tests', onMetric
           <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="date" tick={tick} tickFormatter={shortDate} minTickGap={40} />
           <YAxis tick={tick} tickFormatter={v => pct ? `${Math.round(v * 100)}%` : String(v)} width={44} />
-          <Tooltip contentStyle={tooltipStyle} labelFormatter={v => `Week of ${formatDate(String(v))}`} formatter={(value: any, label: string) => [formatMetric(metric, value), label]} />
-          {alertDates.map(date => <ReferenceLine key={date} x={date} stroke="#fb7185" strokeWidth={1.2} label={{ value: 'Alert', position: 'top', fill: '#fda4af', fontSize: 10 }} />)}
+          <Tooltip contentStyle={tooltipStyle} labelFormatter={v => { const d = String(v); const change = shownChanges.find(c => c.date === d); return [`Week of ${formatDate(d)}`, alertSet.has(d) ? 'Alert raised' : '', change ? change.description ?? change.label : ''].filter(Boolean).join(' · ') }} formatter={(value: any, label: string) => [formatMetric(metric, value), label]} />
+          {alertDates.map(date => <ReferenceLine key={date} x={date} stroke="#fb7185" strokeWidth={1.2} label={labelled ? { value: 'Alert', position: 'top', fill: '#fda4af', fontSize: 10 } : undefined} />)}
+          {shownChanges.map(c => <ReferenceLine key={c.date} x={c.date} stroke="#38bdf8" strokeDasharray="3 3" strokeWidth={1.2} label={{ value: c.label, position: 'insideTopLeft', fill: '#7dd3fc', fontSize: 10 }} />)}
           <Line dataKey="expected" name="Normal level" stroke="#94a3b8" strokeDasharray="4 4" dot={false} strokeWidth={1.3} isAnimationActive={false} connectNulls />
           <Line dataKey="observed" name="Reported" stroke="#22d3ee" dot={false} strokeWidth={1.8} isAnimationActive={false} />
           <Line dataKey="flag" name="Signal" stroke="none" legendType="none" dot={{ r: 3, fill: '#f59e0b', stroke: '#0d1015', strokeWidth: 1 }} activeDot={false} isAnimationActive={false} />

@@ -125,10 +125,10 @@ function UgandaPart() {
     <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
       <Panel title="Series" body={`WHO FluNet weekly influenza tests and positives for Uganda, scored from ${formatDate(window?.start)} to ${formatDate(window?.end)}. The canonical data keeps the full record from ${formatDate(window?.canonical_start)}. ${window?.reason ?? ''}`} />
       <Panel title="Notes on the series">
-        <ul className="mt-2 list-disc space-y-1 pl-4 font-sans text-sm leading-6 text-slate-400">{(run.metadata?.notes ?? []).filter((n: string) => !n.includes('single_origin_source')).map((n: string) => <li key={n}>{n}</li>)}</ul>
+        <ul className="mt-2 list-disc space-y-1 pl-4 font-sans text-sm leading-6 text-slate-400">{(run.metadata?.notes ?? []).map((n: string) => <li key={n}>{n}</li>)}</ul>
       </Panel>
     </div>
-    <div className="mt-4"><SurveillanceChart signals={run.signals} metric={metric} onMetric={setMetric} alerts={run.alerts} height={300} /></div>
+    <div className="mt-4"><SurveillanceChart signals={run.signals} metric={metric} onMetric={setMetric} alerts={run.alerts} height={300} changes={run.metadata?.series_changes} /></div>
     <div className="mt-4"><PriorityAlertFeed alerts={run.alerts} by="recent" compact title={`${run.alerts.length} alerts on the national series`} subtitle="Most recent first." maxHeight="420px" /></div>
   </>
 }

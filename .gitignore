@@ -31,3 +31,4 @@ public/analytics/*.json
 # Python bytecode
 __pycache__/
 .pytest_cache/
+docs/briefs/

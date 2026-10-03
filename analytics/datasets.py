@@ -232,18 +232,34 @@ def build_scotland(out: Path = OUT) -> dict[str, Any]:
     return {"sizes": sizes, "period": [dates[0], dates[-1]], "alerts": {p: len(r["alerts"]) for p, r in runs.items()}}
 
 
+def origin_source_changes(path: Path) -> list[dict[str, Any]]:
+    """Weeks where the FluNet origin source label changes, for example NOTDEFINED to SENTINEL."""
+    import pandas as pd
+    frame = pd.read_csv(path, usecols=["ISO_WEEKSTARTDATE", "ORIGIN_SOURCE"]).sort_values("ISO_WEEKSTARTDATE")
+    weekly = frame.groupby("ISO_WEEKSTARTDATE")["ORIGIN_SOURCE"].agg(lambda s: "+".join(sorted(set(s.astype(str))))).reset_index()
+    changes, previous = [], None
+    for _, row in weekly.iterrows():
+        if previous is not None and row["ORIGIN_SOURCE"] != previous:
+            changes.append({"date": str(row["ISO_WEEKSTARTDATE"])[:10], "label": "Source label changes",
+                            "description": f"The FluNet origin source label changes from {previous} to {row['ORIGIN_SOURCE']}."})
+        previous = row["ORIGIN_SOURCE"]
+    return changes
+
+
 def build_flunet(out: Path = OUT) -> dict[str, Any]:
     records = WHOFluNetAdapter().transform(FLUNET_FILE)
+    changes = origin_source_changes(FLUNET_FILE)
     window_start = "2010-01-04"
     scored = [r for r in records if r["observation_date"] >= window_start]
     window = {"start": window_start, "end": scored[-1]["observation_date"], "canonical_start": records[0]["observation_date"],
               "reason": "Uganda reported on fewer than 45 weeks a year before 2010. From 2010 the weekly series is close to continuous."}
     notes = ["Testing was disrupted in 2020 and 2021 during the COVID-19 pandemic. Influenza positives were very low in 2020, and test volumes changed sharply in 2021 and 2022.",
              "Test volume was low in 2018 (469 specimens processed in the year).",
-             "Each ISO week has one FluNet row in this file, so every week carries the single_origin_source flag.",
+             *[f"Series change in the week of {date.fromisoformat(c['date']).strftime('%-d %B %Y')}: {c['description']}" for c in changes],
              "FluNet reports tests and positives only. Turnaround time, backlog, reagents, rejection and quality control fields are absent."]
     run = run_pipeline(scored, config_path=CONFIG)
-    size = write_json(out / "who-flunet-uganda" / "run.json", trim_run(run, "who-flunet-uganda", _metadata([FLUNET_FILE], window, notes)))
+    metadata = {**_metadata([FLUNET_FILE], window, notes), "series_changes": changes}
+    size = write_json(out / "who-flunet-uganda" / "run.json", trim_run(run, "who-flunet-uganda", metadata))
     return {"size": size, "period": [window_start, scored[-1]["observation_date"]], "alerts": len(run["alerts"])}
 
 

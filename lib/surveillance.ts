@@ -48,9 +48,16 @@ export function formatDate(value: string | null | undefined) {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
+const RATE_METRICS = new Set(['positivity_rate', 'reporting_completeness', 'median_tat_hours'])
+
+/** Expected levels of counts read as whole numbers in alert text: "about 14", never "about 14.5". */
+function expectedValue(metric: string, value: number | null) {
+  return value == null || RATE_METRICS.has(metric) ? value : Math.round(value)
+}
+
 export function driverText(driver?: Driver) {
   if (!driver?.metric) return 'Within normal range'
-  const baseline = driver.expected == null ? '' : ` (normal: ${formatMetric(driver.metric, driver.expected)})`
+  const baseline = driver.expected == null ? '' : ` (normal: ${formatMetric(driver.metric, expectedValue(driver.metric, driver.expected))})`
   return `${metricLabels[driver.metric] ?? driver.metric}: ${formatMetric(driver.metric, driver.observed)}${baseline}`
 }
 
@@ -116,7 +123,7 @@ function times(observed: number | null, expected: number | null) {
 }
 
 function driverSentence(driver: Driver) {
-  const o = driver.observed, e = driver.expected
+  const o = driver.observed, e = expectedValue(driver.metric, driver.expected)
   const f = (v: number | null) => formatMetric(driver.metric, v)
   switch (driver.metric) {
     case 'positive_tests': return `${f(o)} positive tests in one week. A normal week has about ${f(e)}.${times(o, e)}`
@@ -139,7 +146,10 @@ export function explainAlert(alert: Pick<RunAlert, 'primary_driver' | 'supportin
   const pattern: string[] = []
   if (alert.persistence > 1) pattern.push(`The change lasted ${alert.persistence} weeks in a row.`)
   if ((alert.spatial_corroboration ?? 0) > 0) pattern.push(`${alert.spatial_corroboration} other lab${alert.spatial_corroboration === 1 ? '' : 's'} showed an unusual change in the same week.`)
-  const title = kind === 'infection' ? `Unusual rise in positive ${alert.pathogen} tests` : info.label
+  const pathogen = alert.pathogen === 'rsv' ? 'RSV' : alert.pathogen
+  const title = kind !== 'infection' ? info.label
+    : alert.primary_driver?.metric === 'tests_completed' ? `Unusual rise in ${pathogen} testing`
+    : `Unusual rise in positive ${pathogen} tests`
   return { kind, title, info, evidence, pattern }
 }
 

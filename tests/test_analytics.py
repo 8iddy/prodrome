@@ -68,7 +68,8 @@ def test_flunet_csv_sums_origin_sources_per_iso_week(tmp_path):
     assert first["data_quality_flags"] == []
     assert second["tests_completed"] == 50
     assert second["positive_tests"] is None
-    assert {"single_origin_source", "null_inf_all"} <= set(second["data_quality_flags"])
+    assert second["data_quality_flags"] == ["null_inf_all"]
+    assert second["source_record_id"].endswith("NOTDEFINED")
 
 
 CARI_HEADER = "Season,ISOYear,ISOWeek,WeekBeginning,WeekEnding,HBName,HBcode,Pathogen,Tests,Positives,TestPositivity\n"

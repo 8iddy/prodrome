@@ -176,7 +176,8 @@ class WHOFluNetAdapter(Adapter):
         return validate(records)
 
     def _transform_viw_fnt(self, path: str | Path) -> list[dict[str, Any]]:
-        """Sum the WHO FluNet origin sources (SENTINEL, NOTDEFINED) into one national row per ISO week."""
+        """Sum the WHO FluNet origin sources (SENTINEL, NOTDEFINED) into one national row per ISO week.
+        A change of origin source label over time is a series change, recorded in run metadata by the caller."""
         frame = pd.read_csv(path, dtype={"ORIGIN_SOURCE": str})
         if "COUNTRY_CODE" in frame.columns:
             frame = frame[frame["COUNTRY_CODE"].astype(str).str.strip().eq("UGA")]
@@ -186,7 +187,6 @@ class WHOFluNetAdapter(Adapter):
         records = []
         for (year, week), group in frame.groupby(["ISO_YEAR", "ISO_WEEK"], sort=True):
             flags = []
-            if group["ORIGIN_SOURCE"].nunique() < 2: flags.append("single_origin_source")
             totals = {}
             for field in ["SPEC_PROCESSED_NB", "SPEC_RECEIVED_NB", "INF_ALL"]:
                 values = [nullable_number(v) for v in group[field]]

@@ -44,6 +44,6 @@ The Benchmark page has three parts, each with its own question. All are proof of
 
 1. **Simulated network (ground truth).** Does ProDrome find events whose timing is known? The results are above.
 2. **External validation on Public Health Scotland data.** Do the frozen rules behave sensibly on an independent series? Definitions and results are in [external-validation.md](external-validation.md). The definitions were committed before the results.
-3. **Ugandan series (WHO FluNet).** How do the rules behave on real Ugandan influenza testing from 2010 to 2026? The run raised 8 alerts on the national series. The run metadata notes the testing disruption of 2020 and 2021.
+3. **Ugandan series (WHO FluNet).** How do the rules behave on real Ugandan influenza testing from 2010 to 2026? The run raised 9 alerts on the national series. The run metadata notes the testing disruption of 2020 and 2021 and the switch of the FluNet origin source label in January 2022.
 
 All three use `configs/scoring/v2-balanced.json` unchanged. No threshold was tuned on the Scottish or FluNet data.

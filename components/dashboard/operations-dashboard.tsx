@@ -117,7 +117,7 @@ function Overview(props: ViewProps) {
       <div><h2 className="font-sans text-lg font-semibold text-slate-100">{national ? 'Look closer at the national series' : `Look closer at one ${noun(1)}`}</h2><p className="font-sans text-sm text-slate-500">Choose a measure to compare each week with its <Term k="baseline">normal level</Term>.</p></div>
       <LocationPicker run={run} noun={noun} selectedId={selectedId} onChange={setSelectedId} />
     </div>
-    <SurveillanceChart signals={selected} metric={metric} onMetric={setMetric} alerts={run.alerts} />
+    <SurveillanceChart signals={selected} metric={metric} onMetric={setMetric} alerts={run.alerts} changes={run.metadata?.series_changes} />
     <RiskTrendChart signals={selected} />
   </div>
 }
@@ -178,7 +178,7 @@ function Locations(props: ViewProps) {
       <LocationPicker run={run} noun={noun} selectedId={selectedId} onChange={setSelectedId} />
     </div>
     <div className="space-y-5">
-      <SurveillanceChart signals={selected} metric={metric} onMetric={setMetric} alerts={run.alerts} />
+      <SurveillanceChart signals={selected} metric={metric} onMetric={setMetric} alerts={run.alerts} changes={run.metadata?.series_changes} />
       <RiskTrendChart signals={selected} />
       <div className="overflow-x-auto border border-slate-800 bg-[#0d1015]"><table className="w-full min-w-[520px] text-left text-xs"><thead className="text-[10px] uppercase tracking-wider text-slate-500"><tr><th className="p-3">Week of</th><th>{metricLabels[metric]}</th><th>Normal level</th><th>Status</th></tr></thead><tbody>{rows.map(({ s, base }) => { const st = weekStatus(s); return <tr key={s.observation.observation_date} className="border-t border-slate-800"><td className="p-3 text-slate-300">{formatDate(s.observation.observation_date)}</td><td className="text-slate-100">{formatMetric(metric, s.observation[metric])}</td><td className="text-slate-500">{formatMetric(metric, base)}</td><td className={TONE[st.tone].text}>{st.label}</td></tr> })}</tbody></table></div>
     </div>
