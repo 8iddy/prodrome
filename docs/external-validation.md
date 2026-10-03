@@ -48,4 +48,43 @@ Seasonal influenza and RSV waves are expected events. In this benchmark, an aler
 
 ## 6. Results
 
-Results are added in a separate commit after the definitions above.
+These are proof of concept benchmark results from a retrospective analysis of public data. Rebuild them with `python -m analytics build-datasets`. The full tables, including every Health Board and every reference season, are in `public/datasets/phs-scotland/validation.json`. The Benchmark page on the site shows the same numbers.
+
+All runs used `configs/scoring/v2-balanced.json` unchanged (SHA-256 `f59ce2a07bf0…`, seed 20260927).
+
+### Influenza
+
+Of 42 Health Board seasons, 39 had a defined onset. Orkney 2023/24, Orkney 2025/26 and Shetland 2023/24 had peaks below 10 confirmed cases.
+
+| All 14 Health Boards | ProDrome | Comparison rule |
+| --- | ---: | ---: |
+| Seasons with an alert from 4 weeks before onset to peak | 31 of 39 (79%) | 33 of 39 (85%) |
+| First alert relative to onset, median (IQR), weeks | 0 (−2 to 1) | −1 (−3 to 1) |
+| First alert relative to peak, median (IQR), weeks | −3.5 (−7 to −1) | −5 (−6 to −3) |
+| Off season alerts per Health Board year | 0.10 (4 in 42) | 0.19 (8 in 42) |
+| Alerts per Health Board season | 1.6 | 2.1 |
+
+On the 11 mainland boards, ProDrome alerted in 28 of 33 seasons (85%) and the comparison rule in 31 of 33 (94%). ProDrome gave 1.7 alerts per season and the comparison rule 2.4. On the island boards, ProDrome alerted in 3 of 6 defined seasons and the comparison rule in 2 of 6.
+
+For influenza, the comparison rule found a few more seasons and alerted about one week earlier. ProDrome raised half as many off season alerts and fewer alerts per season. The median ProDrome alert came in the onset week, about three to four weeks before the peak.
+
+### RSV
+
+Of 42 Health Board seasons, 33 had a defined onset. All 9 island board seasons had peaks below 10 confirmed cases, so the RSV detection and timing results cover the 11 mainland boards.
+
+| All 14 Health Boards | ProDrome | Comparison rule |
+| --- | ---: | ---: |
+| Seasons with an alert from 4 weeks before onset to peak | 29 of 33 (88%) | 24 of 33 (73%) |
+| First alert relative to onset, median (IQR), weeks | 1 (0 to 2) | 3 (2 to 4) |
+| First alert relative to peak, median (IQR), weeks | −4 (−6 to −3) | −2 (−5 to −1) |
+| Off season alerts per Health Board year | 0.05 (2 in 42) | 0.02 (1 in 42) |
+| Alerts per Health Board season | 1.6 | 1.3 |
+
+For RSV, ProDrome alerted in more seasons and about two weeks earlier than the comparison rule. RSV positivity in CARI passes 10% in every mainland board, and the comparison rule reaches that level for two weeks a median of 3 weeks after onset. Several boards test fewer than 10 CARI samples in a typical week (Dumfries and Galloway, Fife, Grampian and Tayside), so their weekly positivity moves in large steps.
+
+### Reading these results
+
+- The two pathogens give different results. For influenza, the fixed positivity rule found slightly more seasons slightly earlier, and ProDrome raised fewer off season alerts. For RSV, ProDrome found more seasons and alerted earlier.
+- The episode grouping holds on this data: about 1.6 alerts per Health Board season for both pathogens.
+- The island boards have few cases. Their seasons are often below the minimum size, and their results rest on a handful of seasons.
+- The reference is the confirmed case series. Seasonal waves are expected events, so this benchmark measures timing against a known wave. It says nothing about detection of unexpected outbreaks, and it says nothing about performance on Ugandan laboratory data. The implementation study in Uganda measures that.

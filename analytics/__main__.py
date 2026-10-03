@@ -22,6 +22,7 @@ def main() -> None:
     replay=sub.add_parser("replay",help="run chronological no-leakage replay"); replay.add_argument("--dataset",required=True); replay.add_argument("--input",default="data/synthetic/observations.jsonl"); replay.add_argument("--as-of"); replay.add_argument("--output",default="public/analytics/latest-run.json")
     ev=sub.add_parser("evaluate",help="evaluate a labelled synthetic run"); ev.add_argument("--run",default="public/analytics/latest-run.json"); ev.add_argument("--events",default="data/synthetic/events.json"); ev.add_argument("--output",default="public/analytics/evaluation.json")
     benchmark=sub.add_parser("benchmark",help="evaluate versioned scoring candidates against labelled synthetic data"); benchmark.add_argument("--input",default="data/synthetic/observations.jsonl"); benchmark.add_argument("--events",default="data/synthetic/events.json"); benchmark.add_argument("--configs",nargs="+",required=True); benchmark.add_argument("--output",default="public/analytics/candidate-evaluation.json")
+    sub.add_parser("build-datasets",help="rebuild the committed public/datasets artefacts from data/")
     export=sub.add_parser("export",help="copy a run artefact to JSON"); export.add_argument("--run",required=True); export.add_argument("--output",required=True)
     args=parser.parse_args()
     if args.command in {"inspect","ingest"}:
@@ -40,5 +41,8 @@ def main() -> None:
         for config in args.configs:
             run=run_pipeline(records,config_path=config); result=evaluate(run,events); result["config_path"]=config; results.append(result)
         payload={"dataset_id":"synthetic-lab-network","candidates":results}; Path(args.output).parent.mkdir(parents=True,exist_ok=True); Path(args.output).write_text(json.dumps(payload,indent=2)); print(json.dumps(payload,indent=2))
+    elif args.command=="build-datasets":
+        from .datasets import build_all
+        print(json.dumps(build_all(),indent=2))
     else: Path(args.output).write_text(Path(args.run).read_text())
 if __name__ == "__main__": main()
