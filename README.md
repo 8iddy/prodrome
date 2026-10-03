@@ -54,3 +54,9 @@ Screens record reviews through the `ReviewStore` interface in `lib/reviews.ts`. 
 ## Deployment
 
 The web application is a Cloudflare Pages static export. Pushes to `main` run the GitHub Actions workflow, which deploys to the `prodrome-f0` Pages project and `prodrome.health`. The workflow needs the repository secrets documented in [docs/cloudflare-deployment.md](docs/cloudflare-deployment.md).
+
+## Licence
+
+ProDrome is open source under the [Apache License 2.0](LICENSE). Copyright 2026 Neuravox Foundation Limited. See [NOTICE](NOTICE) for attributions.
+
+The licence covers the ProDrome source code. Public datasets used for testing keep their own licences: Public Health Scotland data under the Open Government Licence v3.0, WHO FluNet data under the WHO terms of use, and Natural Earth map data in the public domain. [data/external/SOURCE_MANIFEST.json](data/external/SOURCE_MANIFEST.json) lists each source.

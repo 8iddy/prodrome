@@ -1,0 +1,12 @@
+ProDrome
+Copyright 2026 Neuravox Foundation Limited
+
+This product is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full text.
+
+This repository also contains map outlines derived from Natural Earth
+(public domain) in lib/uganda-geo.ts.
+
+Data from Public Health Scotland is used under the Open Government
+Licence v3.0. WHO FluNet data is used under the WHO terms of use.
+These data keep their own licences, listed in data/external/SOURCE_MANIFEST.json.
