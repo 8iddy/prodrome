@@ -28,6 +28,7 @@ export function SiteFooter() {
       <p className="max-w-3xl">The laboratory network on the dashboard is simulated. ProDrome also runs on public surveillance data from WHO FluNet for Uganda and Public Health Scotland.</p>
       <p className="shrink-0">The surveillance team reviews every alert and decides on the response.</p>
     </div>
+    <p className="mx-auto mt-3 max-w-7xl font-sans text-xs text-slate-500">Email: contact [at] neuravox.org</p>
   </footer>
 }
 

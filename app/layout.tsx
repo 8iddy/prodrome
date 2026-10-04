@@ -10,13 +10,22 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+const description = 'ProDrome watches weekly laboratory data and alerts surveillance teams when testing patterns start to look unusual. An open source early warning tool from Neuravox Foundation, Uganda.'
+
 export const metadata: Metadata = {
+  metadataBase: new URL('https://prodrome.health'),
   title: 'Prodrome - Laboratory Surveillance and Early Warning',
-  description: 'Reproducible surveillance research and retrospective analysis on laboratory signals.',
+  description,
+  keywords: ['laboratory surveillance', 'early warning', 'outbreak detection', 'disease surveillance', 'Uganda', 'public health', 'open source'],
+  alternates: { canonical: '/' },
   openGraph: {
     title: 'Prodrome - Laboratory Surveillance and Early Warning',
-    description: 'Reproducible surveillance research and retrospective analysis on laboratory signals.',
+    description,
+    url: 'https://prodrome.health',
+    siteName: 'ProDrome',
+    type: 'website',
   },
+  twitter: { card: 'summary', title: 'Prodrome - Laboratory Surveillance and Early Warning', description },
 }
 
 export default function RootLayout({
